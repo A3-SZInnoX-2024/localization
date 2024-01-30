@@ -1,14 +1,23 @@
 from pupil_apriltags import Detection
 from numpy import ndarray
 import numpy as np
-from ..utils.tag_location import get_tag_location
+from tag_location import get_tag_location
 import cv2
 
 
 def adjustment(
     tags: list[Detection], camera_matrix: ndarray, dist_coeffs: ndarray = np.zeros(4)
 ):
-    result = {}
+    result = {
+      "matrix": {
+        "rotation": None,
+        "translation": None
+      },
+      "posture": {
+        "rotation": None,
+        "attitude": None
+      }
+    }
 
     # Initialize lists
     object_points = []
@@ -16,14 +25,12 @@ def adjustment(
 
     # Check if `camera_matrix` is a 3x3 matrix
     if camera_matrix.shape != (3, 3):
-        return None
-
-    # Check if `dist_coeffs` is a 4x1 matrix
-    if dist_coeffs.shape != (4, 1):
+        print("Because camera_matrix is not a 3x3 matrix, return None")
         return None
 
     # Check if `tags` has at least 6 tags
     if len(tags) < 6:
+        print("Because tags has less than 6 tags, return None")
         return None
 
     for tag in tags:
@@ -64,3 +71,5 @@ def adjustment(
 
     result["posture"]["rotation"] = tvecs.flatten()
     result["posture"]["attitude"] = np.degrees([roll, pitch, yaw])
+
+    return result
