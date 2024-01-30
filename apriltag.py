@@ -40,11 +40,10 @@ def main():
                 (0, 255, 0),
                 2,
             )
-            
             loc, lab = tag.center, str(tag.tag_id)
-            
+
             mark = (int(loc[0]), int(loc[1]), lab)
-            
+
             print(mark)
 
             # Display tag ID

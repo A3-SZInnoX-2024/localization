@@ -53,16 +53,16 @@ R_mtx, jac = cv2.Rodrigues(rvecs)
 sy = np.sqrt(R_mtx[0,0] * R_mtx[0,0] +  R_mtx[1,0] * R_mtx[1,0])
 singular = sy < 1e-6
 if not singular: # 一般情况
-    x = np.arctan2(R_mtx[2,1] , R_mtx[2,2])
-    y = np.arctan2(-R_mtx[2,0], sy)
-    z = np.arctan2(R_mtx[1,0], R_mtx[0,0])
+    roll = np.arctan2(R_mtx[2,1] , R_mtx[2,2])
+    pitch = np.arctan2(-R_mtx[2,0], sy)
+    yaw = np.arctan2(R_mtx[1,0], R_mtx[0,0])
 else: # 奇异情况
-    x = np.arctan2(-R_mtx[1,2], R_mtx[1,1])
-    y = np.arctan2(-R_mtx[2,0], sy)
-    z = 0
+    roll = np.arctan2(-R_mtx[1,2], R_mtx[1,1])
+    pitch = np.arctan2(-R_mtx[2,0], sy)
+    yaw = 0
 
 # 输出位置 (x, y, z)
 print("位置 (x, y, z):\n", tvecs.flatten())
 
 # 输出方向 (roll, pitch, yaw)
-print("方向 (roll, pitch, yaw):\n", np.degrees([x, y, z]))  # 转换为度
+print("方向 (roll, pitch, yaw):\n", np.degrees([roll, pitch, yaw]))  # 转换为度
