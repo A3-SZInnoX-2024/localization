@@ -33,14 +33,6 @@ def main():
         for tag in tags:
             # Draw a rectangle around the tag
 
-            print(
-                [
-                    [int(tag.corners[0][0]), int(tag.corners[0][1])],
-                    [int(tag.corners[2][0]), int(tag.corners[2][1])],
-                ],
-                str(tag.tag_id),
-            )
-
             cv2.rectangle(
                 frame,
                 (int(tag.corners[0][0]), int(tag.corners[0][1])),
@@ -48,6 +40,12 @@ def main():
                 (0, 255, 0),
                 2,
             )
+            
+            loc, lab = tag.center, str(tag.tag_id)
+            
+            mark = (int(loc[0]), int(loc[1]), lab)
+            
+            print(mark)
 
             # Display tag ID
             cv2.putText(
