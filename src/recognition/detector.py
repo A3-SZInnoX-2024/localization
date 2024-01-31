@@ -23,7 +23,7 @@ def detect(image: Mat, colors: list[dict[str, tuple[int, int, int]]]):
     result = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 600:
+        if area > 2000:
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
             box = np.intp(box)
