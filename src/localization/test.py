@@ -2,6 +2,7 @@ from adjustment import adjustment
 import numpy as np
 import cv2
 from pupil_apriltags import Detector
+from kernel import Location
 
 
 def main():
@@ -19,6 +20,8 @@ def main():
         debug=0,
     )
 
+    location = Location(np.array([[800, 0, 320], [0, 800, 240], [0, 0, 1]], dtype=np.float32), np.zeros(4))
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -30,10 +33,11 @@ def main():
         # Detect AprilTags in the frame
         tags = detector.detect(gray)
 
-        result = adjustment(tags, np.array([[800, 0, 320], [0, 800, 240], [0, 0, 1]], dtype=np.float32), np.zeros(4))
+        if (not location.is_adjusted()) and (len(tags) >= 6):
+            result = location.adjust(tags)
 
-        if result is not None:
-            print(result)
+            if result is not None:
+                print(result.z, result.pitch, result.yaw)
 
         # Process each tag
         for tag in tags:
@@ -48,7 +52,9 @@ def main():
             )
             loc, lab = tag.center, str(tag.tag_id)
 
-            mark = (int(loc[0]), int(loc[1]), lab)
+            result = location.locate(tags)
+
+            print(result)
 
             # Display tag ID
             cv2.putText(
