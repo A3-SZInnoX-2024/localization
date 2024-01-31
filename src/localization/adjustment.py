@@ -1,9 +1,9 @@
 from pupil_apriltags import Detection
 from numpy import ndarray
 import numpy as np
-from tag_location import get_points
+from .tag_location import get_points
 import cv2
-from utils import handle_pnp_result
+from .utils import handle_pnp_result
 
 
 def adjustment(

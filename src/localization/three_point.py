@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from numpy import float32, ndarray
 from pupil_apriltags import Detector
-from tag_location import get_points
-from utils import handle_pnp_result
+from .tag_location import get_points
+from .utils import handle_pnp_result
 
 
 def three_point_localization(
