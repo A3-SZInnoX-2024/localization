@@ -1,0 +1,148 @@
+\documentclass{article}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{tikz}
+\usepackage{url}
+\usepackage{lettrine}
+
+\title{AprilTag Localization Technique Document of A3}
+\author{Wu Chengyu\ \url{7086cmd@gmail.com}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+\lettrine{T}{he} map of the contest is a 2D plane with \texttt{apriltags} on it. The \texttt{apriltags} are asymmetrical and easy to recognize.
+
+Through the camera, we can fetch all the \texttt{apriltags} in the view of the camera. Using \texttt{OpenCV}, we can get the position of the \texttt{apriltags} in the image. Then we can use the position of the \texttt{apriltags} to calculate the position of the camera.
+
+The \texttt{ROS} (Robot Operating System) provides apis to get the position of the \texttt{apriltags} in the image. However, we also need the camera to recognize other blocks, e.g. the ``fish'' in the contest. So we deprecated the \texttt{ROS} and simply use \texttt{Python} with \texttt{OpenCV} to get the position of the \texttt{apriltags} in order to locate.
+
+\section{Methodological Analysis}
+In general, positioning requires $6$ degrees of freedom. That is to say, we need at least $6$ points to calculate the accurate position of the camera. However, the $3$ degrees of freedom will remain constant during the robot's motion.
+
+For spatial coordinates, we use the Cartesian coordinate system $\left(x,y,z\right)$. For the angular coordinates, we use the Euler angle $\left(\alpha,\beta,\gamma\right)$. Or we can call it $\left(\mathrm{roll},\mathrm{pitch},\mathrm{yaw}\right)$.
+
+The punctuation of \texttt{apriltags} is fixed, therefore, as long as we know the position of \texttt{apriltags} in the image and its punctuation, it is possible to correspond the two-dimensional image coordinates to the three-dimensional spatial coordinates. Using P$n$P algorithm, we can get the position of the camera.
+
+\subsection{Basic Parameters}
+We need the camera's internal reference and distortion coefficients to accurately confirm the conversion.
+
+The camera's internal reference is a $3\times3$ matrix, which is the camera's focal length and the center of the image:
+
+\[
+  \texttt{camera\_matrix}=\left(\begin{matrix}
+    f_x & 0 & c_x \\
+    0 & f_y & c_y \\
+    0 & 0 & 1
+  \end{matrix}\right)
+\]
+
+The distortion coefficients are $5$ parameters, which are used to correct the distortion of the image:
+
+\[
+  \texttt{distortion\_coefficients}=\left(\begin{matrix}
+    k_1 & k_2 & p_1 & p_2 & k_3
+  \end{matrix}\right)
+\]
+
+The relevant parameters of the camera are not considered to vary excessively during the process. In other words, we can store these parameters directly at call time.
+
+\subsection{6-point Adjustment}
+Each location of the \texttt{apriltags} can define $\dfrac16$ of the camera's position. Therefore, we need at least $6$ \texttt{apriltags} to calculate the position of the camera.
+
+\[
+  \left(
+    \begin{matrix}
+      x&y&z\\
+      \mathrm{roll}&\mathrm{pitch}&\mathrm{yaw}
+    \end{matrix}
+  \right)
+\]
+
+Through the P$n$P algorithm provided by \texttt{OpenCV}, we can calculate the transform vector and the rotation vector of the camera easily.
+
+After getting \texttt{tvec} and \texttt{rvec}, we can use the \texttt{Rodrigues} function to convert the rotation vector to the rotation matrix:
+
+\[
+  \texttt{R\_mtx}=\texttt{Rodrigues}\left(\texttt{rvec}\right)
+\]
+
+Then, through some simple calculations, we can get the Euler angle.
+
+\subsection{3-point Localization}
+The \texttt{apriltags}'s center point is accurate enough to calculate the position of the camera. That is to say, through at least $3$ \texttt{apriltags}, we can calculate the position of the camera through the P$n$P algorithm.
+
+Knowing $z$, $\mathrm{roll}$ and $\mathrm{pitch}$, we should calculate the ``bias'' matrix.
+
+Define the original matrixes of rotate and transform through these elements:
+
+\begin{equation}
+  R_x=
+  \left(
+    \begin{matrix}
+      1 & 0 & 0 \\
+      0 & \cos\alpha & -\sin\alpha \\
+      0 & \sin\alpha & \cos\alpha
+    \end{matrix}
+  \right),
+  R_z=
+  \left(
+    \begin{matrix}
+      \cos\gamma & -\sin\gamma & 0 \\
+      \sin\gamma & \cos\gamma & 0 \\
+      0 & 0 & 1
+    \end{matrix}
+  \right)
+\end{equation}
+
+Then, we can get the rotate ``bias'' matrix:
+
+\begin{equation}
+  R_{\texttt{bias}}=R_x\cdot R_z= \left(
+    \begin{matrix}
+      \cos\gamma & -\sin\gamma & 0 \\
+      \sin\gamma\cos\alpha & \cos\gamma\cos\alpha & -\sin\alpha \\
+      \sin\gamma\sin\alpha & \cos\gamma\sin\alpha & \cos\alpha
+    \end{matrix}
+  \right)
+\end{equation}
+
+Through \texttt{Rodrigues} method, we can get the rotate vector of the ``bias'' matrix.
+
+Also, the transform vector is easy to get:
+
+\begin{equation}
+  \texttt{tvec}_{\texttt{bias}}=\left(
+    \begin{matrix}
+      0 \\
+      0 \\
+      -z
+    \end{matrix}
+  \right)
+\end{equation}
+
+\subsection{1-point Emergency Localization}
+We can know each corner of the \texttt{apriltags} of the map. Therefore, we can calculate the position of the camera through the P$n$P algorithm.
+
+However, I strongly recommend that we should not use this method. It is not so accurate and it is easy to make mistakes.
+
+If there is less than $3$ \texttt{apriltags} in the view of the camera, we can calculate corners of the \texttt{apriltags} in the image. Then we can calculate the position of the camera through the P$n$P algorithm.
+
+\subsection{Turn Around}
+The robot can never gonna give you up, never gonna let you down. It can never gonna run around and desert you.
+
+So, don't cry, don't say goodbye, don't tell a lie and hurt you.
+\end{document}
