@@ -2,7 +2,7 @@ from pupil_apriltags import Detection
 from numpy import ndarray
 import numpy as np
 from adjustment import adjustment
-from three_point_localization import three_point_localization
+from three_point import three_point_localization
 
 
 class Location:
