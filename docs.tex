@@ -10,7 +10,7 @@
 \usepackage{url}
 \usepackage{lettrine}
 
-\title{AprilTag Localization Technique Document of A3}
+\title{Navigation System of Group A2}
 \author{Wu Chengyu\ \url{7086cmd@gmail.com}}
 \date{\today}
 
@@ -29,6 +29,29 @@
 Through the camera, we can fetch all the \texttt{apriltags} in the view of the camera. Using \texttt{OpenCV}, we can get the position of the \texttt{apriltags} in the image. Then we can use the position of the \texttt{apriltags} to calculate the position of the camera.
 
 The \texttt{ROS} (Robot Operating System) provides apis to get the position of the \texttt{apriltags} in the image. However, we also need the camera to recognize other blocks, e.g. the ``fish'' in the contest. So we deprecated the \texttt{ROS} and simply use \texttt{Python} with \texttt{OpenCV} to get the position of the \texttt{apriltags} in order to locate.
+
+Also, we need to recognize blocks colored with red, yellow, green, and blue (size: $5\mathrm{cm}\times5\mathrm{cm}\times5\mathrm{cm}$). We should use \texttt{OpenCV} too, so it's a good manner to combine these two parts together.
+
+That's the biggest reason why I strongly recommend navigating with \texttt{OpenCV}.
+
+\section{Targets}
+
+\subsection{Localization \& Navigation}
+
+\begin{itemize}
+  \item We need fetch the location of the robot (not only position, but also the orientation) in the ground coordinate system. The ground coordinate system is defined by the \texttt{apriltags}.
+  \item We need to adjust the position, making it more accurate. The accuracy should be less than $1\mathrm{cm}$.
+  \item We need to handle with the emergency situation. If there are less than $3$ \texttt{apriltags} in the view of the camera, we should use corner of single \& double \texttt{apriltags} to calculate the position of the camera.
+  \item If there is no \texttt{apriltags} in the view of the camera, we should turn around and find the \texttt{apriltags}.
+\end{itemize}
+
+\subsection{Block Recognition}
+
+\begin{itemize}
+  \item We need to recognize the color of the block. The color of the block is red, yellow, green, and blue. If necessary, we need to recognize the orange block too.
+  \item We should get the camera matrix, the distortion coefficients. However, it's not my task.
+  \item We should also get the position of the block (only position) in the ground coordinate system.
+\end{itemize}
 
 \section{Methodological Analysis}
 In general, positioning requires $6$ degrees of freedom. That is to say, we need at least $6$ points to calculate the accurate position of the camera. However, the $3$ degrees of freedom will remain constant during the robot's motion.
@@ -77,7 +100,7 @@ Through the P$n$P algorithm provided by \texttt{OpenCV}, we can calculate the tr
 After getting \texttt{tvec} and \texttt{rvec}, we can use the \texttt{Rodrigues} function to convert the rotation vector to the rotation matrix:
 
 \[
-  \texttt{R\_mtx}=\texttt{Rodrigues}\left(\texttt{rvec}\right)
+  \boldsymbol{R}\_\texttt{mtx}=\texttt{Rodrigues}\left(\texttt{rvec}\right)
 \]
 
 Then, through some simple calculations, we can get the Euler angle.
@@ -90,7 +113,7 @@ Knowing $z$, $\mathrm{roll}$ and $\mathrm{pitch}$, we should calculate the ``bia
 Define the original matrixes of rotate and transform through these elements:
 
 \begin{equation}
-  R_x=
+  \boldsymbol{R}_x=
   \left(
     \begin{matrix}
       1 & 0 & 0 \\
@@ -98,7 +121,7 @@ Define the original matrixes of rotate and transform through these elements:
       0 & \sin\alpha & \cos\alpha
     \end{matrix}
   \right),
-  R_z=
+  \boldsymbol{R}_z=
   \left(
     \begin{matrix}
       \cos\gamma & -\sin\gamma & 0 \\
@@ -111,7 +134,7 @@ Define the original matrixes of rotate and transform through these elements:
 Then, we can get the rotate ``bias'' matrix:
 
 \begin{equation}
-  R_{\texttt{bias}}=R_x\cdot R_z= \left(
+  \boldsymbol{R}_{\texttt{bias}}=\boldsymbol{R}_x\cdot \boldsymbol{R}_z= \left(
     \begin{matrix}
       \cos\gamma & -\sin\gamma & 0 \\
       \sin\gamma\cos\alpha & \cos\gamma\cos\alpha & -\sin\alpha \\
@@ -125,7 +148,7 @@ Through \texttt{Rodrigues} method, we can get the rotate vector of the ``bias'' 
 Also, the transform vector is easy to get:
 
 \begin{equation}
-  \texttt{tvec}_{\texttt{bias}}=\left(
+  \boldsymbol{t}_{\texttt{bias}}=\left(
     \begin{matrix}
       0 \\
       0 \\
@@ -145,4 +168,24 @@ If there is less than $3$ \texttt{apriltags} in the view of the camera, we can c
 The robot can never gonna give you up, never gonna let you down. It can never gonna run around and desert you.
 
 So, don't cry, don't say goodbye, don't tell a lie and hurt you.
+
+If there's no \texttt{apriltags}, what the robot should do is to turn around and find the \texttt{apriltags}. There is no place without \texttt{apriltag} around the robot.
+
+\subsection{Block Recognition}
+
+\subsubsection{Color Recognition}
+Through the \texttt{HSV} color space, we can easily recognize the color of the block. The \texttt{HSV} color space is a cylindrical coordinate system. The three dimensions represent the hue, saturation, and value, respectively.
+
+We use the opening operation to remove the noise. That's becuase there are white dots on colored blocks and it is not so easy to remove. The opening operation can relatively remove the white dots, making the color recognition more accurate.
+
+The adjustment of target range is a hard work. We should adjust the range of the color recognition to make it more accurate.
+
+\subsubsection{Shape Recognition}
+The camera can only capture the two-dimensional image. So we simply use the \texttt{N2} algorithm to recognize the shape of the block:
+
+\[
+  \left(\begin{matrix}x&y\end{matrix}\right)=\left(\begin{matrix}\sqrt{\dfrac{\sum x_i^2}{n}}&\sqrt{\dfrac{\sum y_i^2}{n}}\end{matrix}\right)
+\]
+
+The reason why the arithmetic mean is not used is because I think it is not elegant enough.
 \end{document}
