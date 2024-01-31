@@ -3,6 +3,19 @@ import cv2
 import numpy as np
 
 
+def n2_average(data: np.ndarray):
+    if np.shape(data)[2] != 2:
+        return None
+
+    x = np.square(data[0, :][:, 0])
+    y = np.square(data[0, :][:, 1])
+
+    x_mean = np.mean(x)
+    y_mean = np.mean(y)
+
+    return np.sqrt(x_mean), np.sqrt(y_mean)
+
+
 def detect(image: Mat, colors: list[dict[str, tuple[int, int, int]]]):
     # Change to HSV color space
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -23,6 +36,14 @@ def detect(image: Mat, colors: list[dict[str, tuple[int, int, int]]]):
     result = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
+
+        if area < 800:
+            continue
+
+        avg = n2_average(cnt)
+
+        print(avg)
+
         if area > 2000:
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
@@ -30,7 +51,7 @@ def detect(image: Mat, colors: list[dict[str, tuple[int, int, int]]]):
             result.append(box)
 
     # Draw contours
-    # cv2.drawContours(image, result, -1, (0, 0, 255), 3)
+    cv2.drawContours(image, result, -1, (0, 0, 255), 3)
 
     # Show image
     # cv2.imshow('Scan', image)
