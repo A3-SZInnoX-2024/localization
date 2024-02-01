@@ -34,6 +34,9 @@
     columns = fixed,
     basewidth = 0.5em,
 }
+\newcommand{\apriltag}[1]{
+    \includegraphics[width=2cm,height=2cm]{marks/tag36h11/tag36_11_00#1.png}
+}
 
 \title{Localization System of Group A2}
 \author{Wu Chengyu\ \url{7086cmd@gmail.com}}
@@ -49,6 +52,9 @@
 \newpage
 
 \section{Introduction}
+
+\apriltag{001}
+
 \lettrine{T}{he} map of the contest is a 2D plane with \texttt{apriltags} on it. The \texttt{apriltags} are asymmetrical and easy to recognize.
 
 Through the camera, we can fetch all the \texttt{apriltags} in the view of the camera. Using \texttt{OpenCV}, we can get the position of the \texttt{apriltags} in the image. Then we can use the position of the \texttt{apriltags} to calculate the position of the camera.
