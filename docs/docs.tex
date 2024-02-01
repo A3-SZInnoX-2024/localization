@@ -17,15 +17,15 @@
     flexiblecolumns,
     numbers = left,
     showspaces = false,
-    numberstyle = \zihao{-5}\ttfamily,
+    numberstyle = \ttfamily,
     showstringspaces = false,
     captionpos = t,
     frame = lrtb,
 }
 \lstdefinestyle{Python}{
     language = Python,
-    basicstyle = \zihao{-5}\ttfamily,
-    numberstyle = \zihao{-5}\ttfamily,
+    basicstyle = \ttfamily,
+    numberstyle = \ttfamily,
     keywordstyle = \color{blue},
     keywordstyle = [2] \color{teal},
     stringstyle = \color{magenta},
@@ -33,9 +33,6 @@
     breaklines = true,
     columns = fixed,
     basewidth = 0.5em,
-}
-\newcommand{\apriltag}[1]{
-    \includegraphics[width=2cm,height=2cm]{marks/#1.png}
 }
 
 \title{Localization System of Group A2}
@@ -52,8 +49,6 @@
 \newpage
 
 \section{Introduction}
-
-\apriltag{001}
 
 \lettrine{T}{he} map of the contest is a 2D plane with \texttt{apriltags} on it. The \texttt{apriltags} are asymmetrical and easy to recognize.
 
@@ -365,4 +360,96 @@ You need provide at least $6$ \texttt{apriltags} to adjust the camera. Or the cl
 \paragraph{Localization}
 
 The class will provide a packed method to locate the camera. No matter how many \texttt{apriltags} are in the view of the camera, the class will calculate the position and orientation of the camera, (except there's no \texttt{apriltags} in the view of the camera.)
+
+The class will use the P$n$P algorithm to calculate the position and orientation of the camera. If there's no \texttt{apriltags} in the view of the camera, the class will raise an error: \texttt{No tags in the view of the camera}.
+
+\subsection{Other Functions}
+
+There are also some implementation functinos. They are not so important, so I won't introduce them to you.
+
+\section{Block Recognition}
+
+The block recognition is implemented in the \texttt{recognition} folder. The core of the block recognition is the \texttt{BlockRecognition} class.
+
+\subsection{Kernel: class \texttt{BlockRecognition}}
+
+It is a class that can provide methods to recognize the color and the shape of the block. The class will use the \texttt{Location} class to get the position of the camera.
+
+The class will use the \texttt{HSV} color space to recognize the color of the block. The class will use the \texttt{N2} algorithm to decide wich point to use to calculate the position of the block.
+
+If you call the \texttt{recognize}, the class will automatically capture a image to recognize the block. You need to provide the color range (lower, and upper) to recognize it.
+
+After recognition, it will save color and position of the block into \texttt{blocks}. The \texttt{blocks} is a \texttt{tuple} type. You can use \texttt{get\_blocks} method to get the \texttt{blocks}.
+
+\subsection{Recognition Method: \texttt{detect}}
+
+The detector will use the \texttt{HSV} color space to recognize the color of the block.
+
+\lstinputlisting[style=Python]{../src/recognition/detector.py}
+
+\subsection{Locate Method: \texttt{locate\_block}}
+The locate method provides the location of blocks in the image and the ground coordinate system. It will fetch \texttt{camera\_matrix} and \texttt{distortion\_coefficients} from the \texttt{Location} class. It will also get the camera position and orientation from the \texttt{Location} class.
+
+Then, it will calculate the rotate \& transform matrix ($\boldsymbol{R}_{\texttt{transform}}$ and $\boldsymbol{t}_{\texttt{transform}}$) through the position and orientation of the camera. Then, it will use the \texttt{undistortPoints} method to transform the image.
+
+It's the core of the block localization, and it's important enough to display the code here.
+
+\lstinputlisting[style=Python]{../src/recognition/locate.py}
+
+According to the code, it will calculate the position of the block as well.
+
+\section{Algorithm Effect}
+
+The algorithm is quite effective. It can recognize the color of the block and the position of the block.
+
+\subsection{Calibration}
+
+\includegraphics[width=0.8\textwidth]{figure/c-1.png}
+
+According to the image, the \texttt{OpenCV} can get the camera matrix and the distortion coefficients with chess board.
+
+Then, we can get the data in \texttt{data/calibration.npz}.
+
+In this demo, we get the data:
+
+\[
+  \texttt{camera\_matrix}=\left(\begin{matrix}
+    1503.75365 & 0.0 & 899.284676 \\
+    0.0 & 1514.5398703 & 367.845474 \\
+    0.0 & 0.0 & 1.0
+  \end{matrix}\right)
+\]
+\[
+  \texttt{distortion\_coefficients}=\left(\begin{matrix}
+    -0.01056663 & 0.30294403 & -0.07029588 & -0.02169794 & -0.44549622
+  \end{matrix}\right)
+\]
+
+Because the image is not flat enough, the calibration is not so accurate. However, it is enough for the algorithm.
+
+Then, we can see the file in \texttt{data} folder.
+
+\subsection{Localization}
+
+\subsubsection{AprilTag Caption}
+
+\includegraphics[width=0.8\textwidth]{figure/l-1.png}
+
+The \texttt{OpenCV} and the \texttt{pupil\_apriltag} package can recognize \texttt{package} properly. The picture above can show the effect.
+
+Then, through at laast $6$ \texttt{apriltags}, we can adjust the position and orientation of the camera.
+
+For example, the position and orientation of the camera (prompt) in the following picture:
+
+\includegraphics[width=0.8\textwidth]{figure/l-2.png}
+
+The array is $\left(x,y,z,\mathrm{roll},\mathrm{pitch},\mathrm{yaw}\right)$.\\\indent It can display as $\left(\begin{matrix}-2.8092001&16.76411238&4.916822&100.10445382&61.60145933&-1.28225893\end{matrix}\right)$ when testing with my laptap.
+
+\subsubsection{Block Recognition}
+
+The color recognition can work properly. The picture above can show the effect.
+
+\includegraphics[width=0.8\textwidth]{figure/r-1.png}
+
+Then, adding the mask can make the recognition more accurate. We can recognize the border and then calculate the position of the block.
 \end{document}

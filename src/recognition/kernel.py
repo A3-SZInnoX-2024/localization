@@ -34,3 +34,6 @@ class BlockRecognition:
         self.blocks = result
 
         return result
+
+    def get_blocks(self):
+        return self.blocks

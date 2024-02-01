@@ -53,7 +53,4 @@ def detect(image: Mat, colors: list[dict[str, tuple[int, int, int]]]):
     # Draw contours
     cv2.drawContours(image, result, -1, (0, 0, 255), 3)
 
-    # Show image
-    # cv2.imshow('Scan', image)
-
     return result
