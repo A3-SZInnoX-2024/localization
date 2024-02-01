@@ -181,11 +181,65 @@ We use the opening operation to remove the noise. That's becuase there are white
 The adjustment of target range is a hard work. We should adjust the range of the color recognition to make it more accurate.
 
 \subsubsection{Shape Recognition}
-The camera can only capture the two-dimensional image. So we simply use the \texttt{N2} algorithm to recognize the shape of the block:
+
+\paragraph{Recognition}
+
+Due to the interference of the points in the dice, we cannot determine the outline of each dice very accurately. But the closer the distance, the higher the definition.
+
+We use \texttt{HSV} color space to recognize the color of the dice. Before recognizing, we use the opening operation to remove some noise. You can see the action in the next section.
+
+Then, we calculated the transform matrix, and use the \texttt{warpPerspective} function to transform the image:
+
+\begin{equation}
+  \boldsymbol{R}_x=
+  \left(
+  \begin{matrix}
+    1 & 0 & 0 \\
+    0 & \cos\theta & -\sin\theta \\
+    0 & \sin\theta & \cos\theta
+  \end{matrix}
+  \right),
+  \boldsymbol{R}_y=
+  \left(
+  \begin{matrix}
+    \cos\phi & 0 & \sin\phi \\
+    0 & 1 & 0 \\
+    -\sin\phi & 0 & \cos\phi
+  \end{matrix}
+  \right),
+  \boldsymbol{R}_z=
+  \left(
+  \begin{matrix}
+    \cos\psi & -\sin\psi & 0 \\
+    \sin\psi & \cos\psi & 0 \\
+    0 & 0 & 1
+  \end{matrix}
+  \right)
+\end{equation}
+
+Then, we firstly dot the $\boldsymbol{R}_x$ and $\boldsymbol{R}_y$ matrixes, and then dot the result with $\boldsymbol{R}_z$ matrix. We can get the transform matrix.
+
+\begin{equation}
+  \boldsymbol{R}_{\texttt{transform}}=\boldsymbol{R}_z\cdot\left(\boldsymbol{R}_x\cdot\boldsymbol{R}_y\right)
+\end{equation}
+
+The vertical transform vector is quite easy. Just simply resize it.
+
+Then, we can get the full matrix through \texttt{hstack} and \texttt{vstack} method. You can see the full algorithm in next section.
+
+\paragraph{Calculation}
+
+The camera can only capture the two-dimensional image. So we simply use the \texttt{N2} algorithm to abstract objects into particles:
 
 \[
   \left(\begin{matrix}x&y\end{matrix}\right)=\left(\begin{matrix}\sqrt{\dfrac{\sum x_i^2}{n}}&\sqrt{\dfrac{\sum y_i^2}{n}}\end{matrix}\right)
 \]
 
 The reason why the arithmetic mean is not used is because I think it is not elegant enough.
+
+\subsection{Communicating}
+
+\section{Algorithm Implementation}
+
+Using P$n$P method, we can get the location of the camera easily.
 \end{document}
