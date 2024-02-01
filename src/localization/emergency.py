@@ -1,10 +1,11 @@
 from pupil_apriltags import Detection
 from .tag_location import get_points
-from .three_point import three_point_localization
 import numpy as np
+import cv2
+from .utils import handle_pnp_result
 
 
-def geenerate_points(tags: list[Detection], tag_width: float = 20.0):
+def generate_points(tags: list[Detection], tag_width: float = 20.0):
     object_points, image_points = [], []
 
     tags_object, tags_image = get_points(tags)
@@ -49,8 +50,15 @@ def emergency_localization(
     dist_coeffs: np.ndarray,
     tag_width: float = 20.0,
 ):
-    object_points, image_points = geenerate_points(tags, tag_width)
+    object_points, image_points = generate_points(tags, tag_width)
 
-    return three_point_localization(
-        tags, z, roll, pitch, camera_matrix, dist_coeffs, object_points, image_points
+    _, rvecs, tvecs = cv2.solvePnP(
+        np.array(object_points, dtype=np.float32),
+        np.array(image_points, dtype=np.float32),
+        camera_matrix,
+        dist_coeffs,
     )
+
+    R_mtx, _ = cv2.Rodrigues(rvecs)
+
+    return handle_pnp_result(tvecs, R_mtx)
