@@ -3,31 +3,42 @@ from numpy import ndarray
 import numpy as np
 from .adjustment import adjustment
 from .three_point import three_point_localization
+from .emergency import emergency_localization
+from ..calibration.file import load_calibration
 
 
 class Location:
-    z, roll, yaw = None, None, None  # It won't change after initialization
-    x, y, pitch = None, None, None  # It will change after initialization
+    z, roll, pitch = None, None, None  # It won't change after initialization
+    x, y, yaw = None, None, None  # It will change after initialization
     camera_matrix = None
     dist_coeffs = None
     adjusted = False
 
     def __init__(self, camera_matrix: ndarray, dist_coeffs: ndarray = np.zeros(4)):
+        if camera_matrix is None or dist_coeffs is None:
+            calibration = load_calibration()
+            if calibration is None:
+                raise Exception("Calibration file does not exist")
+            camera_matrix = calibration["camera_matrix"]
+            dist_coeffs = calibration["dist_coeffs"]
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
 
     def adjust(self, tags: list[Detection]):
+        if len(tags) < 6:
+            raise Exception("At least 6 tags are required to adjust the camera")
+
         result = adjustment(tags, self.camera_matrix, self.dist_coeffs)
 
         self.z = result[0][2]
         self.roll = result[1][0]
-        self.yaw = result[1][2]
+        self.pitch = result[1][1]
 
         self.x = result[0][0]
         self.y = result[0][1]
-        self.pitch = result[1][1]
+        self.yaw = result[1][2]
 
-        print(f"z: {self.z}, roll: {self.roll}, yaw: {self.yaw}")
+        print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
 
         self.adjusted = True
 
@@ -44,12 +55,18 @@ class Location:
 
         if len(tags) >= 3:
             location = three_point_localization(
-                tags, self.z, self.roll, self.yaw, self.camera_matrix, self.dist_coeffs
+                tags, self.z, self.roll, self.pitch, self.camera_matrix, self.dist_coeffs
             )
             position, orientation = location
-            self.x, self.y, self.pitch = position[0], position[1], orientation[1]
+            self.x, self.y, self.yaw = position[0], position[1], orientation[1]
         else:
-            location = None, None
+            location = emergency_localization(
+                tags, self.z, self.roll, self.pitch, self.camera_matrix, self.dist_coeffs
+            )
+
+            if location is not None:
+                position, orientation = location
+                self.x, self.y, self.yaw = position[0], position[1], orientation[1]
         return location
 
     def get_position(self):

@@ -14,13 +14,11 @@ def adjustment(
 
     # Check if `camera_matrix` is a 3x3 matrix
     if camera_matrix.shape != (3, 3):
-        print("Because camera_matrix is not a 3x3 matrix, return None")
-        return None
+        raise Exception("Because camera_matrix is not a 3x3 matrix, return None")
 
     # Check if `tags` has at least 6 tags
     if len(tags) < 6:
-        print("Because tags has less than 6 tags, return None")
-        return None
+        raise Exception("Because tags has less than 6 tags, return None")
 
     _, rvecs, tvecs = cv2.solvePnP(
         np.array(object_points, dtype=np.float32),

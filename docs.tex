@@ -9,8 +9,33 @@
 \usepackage{tikz}
 \usepackage{url}
 \usepackage{lettrine}
+\lstset{
+    basicstyle = \sffamily,
+    keywordstyle = \bfseries,
+    commentstyle = \rmfamily\itshape,
+    stringstyle = \ttfamily,
+    flexiblecolumns,
+    numbers = left,
+    showspaces = false,
+    numberstyle = \zihao{-5}\ttfamily,
+    showstringspaces = false,
+    captionpos = t,
+    frame = lrtb,
+}
+\lstdefinestyle{Python}{
+    language = Python,
+    basicstyle = \zihao{-5}\ttfamily,
+    numberstyle = \zihao{-5}\ttfamily,
+    keywordstyle = \color{blue},
+    keywordstyle = [2] \color{teal},
+    stringstyle = \color{magenta},
+    commentstyle = \color{red}\ttfamily,
+    breaklines = true,
+    columns = fixed,
+    basewidth = 0.5em,
+}
 
-\title{Navigation System of Group A2}
+\title{Localization System of Group A2}
 \author{Wu Chengyu\ \url{7086cmd@gmail.com}}
 \date{\today}
 
@@ -34,7 +59,20 @@ Also, we need to recognize blocks colored with red, yellow, green, and blue (siz
 
 That's the biggest reason why I strongly recommend navigating with \texttt{OpenCV}.
 
+Becuase we don't use \texttt{ROS}, so we can test the camera with my laptop. The Apple 1080P camera can help me to test the algorithm. As for the calculation difference, it is not so big.
+
+
 \section{Targets}
+
+There are several targets in this project:
+
+\subsection{Calibration}
+
+\begin{itemize}
+  \item Get the camera matrix and the distortion coefficients with the help of \texttt{OpenCV}.
+  \item Store the data, and use it at call time.
+  \item \texttt{OPTIONAL}: Calibrate the camera promptly.
+\end{itemize}
 
 \subsection{Localization \& Navigation}
 
@@ -60,7 +98,15 @@ For spatial coordinates, we use the Cartesian coordinate system $\left(x,y,z\rig
 
 The punctuation of \texttt{apriltags} is fixed, therefore, as long as we know the position of \texttt{apriltags} in the image and its punctuation, it is possible to correspond the two-dimensional image coordinates to the three-dimensional spatial coordinates. Using P$n$P algorithm, we can get the position of the camera.
 
-\subsection{Basic Parameters}
+\subsection{Calibration}
+
+The first step of localization, navigation and block recognition is to calibrate the camera, knowing the camera's internal reference and distortion coefficients.
+
+The calibration process is quite simple. We can use the \texttt{calibrateCamera} method provided by \texttt{OpenCV} to get the camera matrix and the distortion coefficients.
+
+For fun, I provided a simple calibration method that can calibrate the camera promptly with the camera. You may turn around to get the accurate calibration data. That's quite fun, or funny.
+
+\subsubsection{Basic Parameters}
 We need the camera's internal reference and distortion coefficients to accurately confirm the conversion.
 
 The camera's internal reference is a $3\times3$ matrix, which is the camera's focal length and the center of the image:
@@ -83,7 +129,9 @@ The distortion coefficients are $5$ parameters, which are used to correct the di
 
 The relevant parameters of the camera are not considered to vary excessively during the process. In other words, we can store these parameters directly at call time.
 
-\subsection{6-point Adjustment}
+\subsection{Localization}
+
+\subsubsection{6-point Adjustment}
 Each location of the \texttt{apriltags} can define $\dfrac16$ of the camera's position. Therefore, we need at least $6$ \texttt{apriltags} to calculate the position of the camera.
 
 \[
@@ -105,7 +153,7 @@ After getting \texttt{tvec} and \texttt{rvec}, we can use the \texttt{Rodrigues}
 
 Then, through some simple calculations, we can get the Euler angle.
 
-\subsection{3-point Localization}
+\subsubsection{3-point Localization}
 The \texttt{apriltags}'s center point is accurate enough to calculate the position of the camera. That is to say, through at least $3$ \texttt{apriltags}, we can calculate the position of the camera through the P$n$P algorithm.
 
 Knowing $z$, $\mathrm{roll}$ and $\mathrm{pitch}$, we should calculate the ``bias'' matrix.
@@ -157,14 +205,14 @@ Also, the transform vector is easy to get:
   \right)
 \end{equation}
 
-\subsection{1-point Emergency Localization}
+\subsubsection{1-point Emergency Localization}
 We can know each corner of the \texttt{apriltags} of the map. Therefore, we can calculate the position of the camera through the P$n$P algorithm.
 
 However, I strongly recommend that we should not use this method. It is not so accurate and it is easy to make mistakes.
 
 If there is less than $3$ \texttt{apriltags} in the view of the camera, we can calculate corners of the \texttt{apriltags} in the image. Then we can calculate the position of the camera through the P$n$P algorithm.
 
-\subsection{Turn Around}
+\subsubsection{Turn Around}
 The robot can never gonna give you up, never gonna let you down. It can never gonna run around and desert you.
 
 So, don't cry, don't say goodbye, don't tell a lie and hurt you.
@@ -239,7 +287,76 @@ The reason why the arithmetic mean is not used is because I think it is not eleg
 
 \subsection{Communicating}
 
+Finally, we select \texttt{ROS} to communicate with the robot. It is not implemented yet.
+
 \section{Algorithm Implementation}
 
-Using P$n$P method, we can get the location of the camera easily.
+Using P$n$P method, we can get the location of the camera easily. The project structure includes \texttt{localization} folder, and it is the core of the localization module.
+
+\subsection{Kernel: class \texttt{Location}}
+
+I packed the method into the class \texttt{Location}. It contains position, orientation (Euler angle), the camera matrix and the distortion coefficients which is saved in \texttt{data/calibration.npz}.
+
+The \texttt{x}, \texttt{y}, \texttt{z}, \texttt{roll}, \texttt{pitch}, \texttt{yaw} are the position and orientation of the camera. The \texttt{camera\_matrix} and \texttt{distortion\_coefficients} are the camera matrix and the distortion coefficients.
+
+\texttt{x}, \texttt{y}, \texttt{z}, \texttt{roll}, \texttt{pitch}, \texttt{yaw} are \texttt{np.float32} type, and the \texttt{camera\_matrix} is a $3\times3$ \texttt{np.ndarray} matrix with \texttt{np.float32}, and the \texttt{distortion\_coefficients} is a $5\times1$ \texttt{np.ndarray} matrix with \texttt{np.float32}.
+
+The kernel will detect \texttt{data/calibration.npz} file, if there's no parameters or the file is not exist, it will raise an error.
+
+\textbf{Note} Because the author is familiar with \texttt{HTTP Methods}, the introduction of classes and methods is written in ``the form of \texttt{HTTP Methods}''.
+
+\subsubsection{\texttt{POST} Methods -- Initialization}
+
+You need to initialize the class \texttt{Location} with the \texttt{camera\_matrix} and the \texttt{distortion\_coefficients}. If you don't want to directly write the parameters, you can use the \texttt{calibrate} method to calibrate the camera. If there's no parameters, the initialization method will read the parameters from \texttt{data/calibration.npz}.
+
+If there's still no parameters, the initialization method will raise an error: \texttt{Calibration file does not exist}.
+
+
+\subsubsection{\texttt{GET} Methods}
+
+The \texttt{Location} class provides variety of methods to return the position and orientation of the camera. I don't want to introduce these parameters to you, as I think you are clever enough to know them. Otherwize, you are not suitable to read this document. The methods are:
+
+\begin{itemize}
+  \item \texttt{is\_adjusted}: Return \texttt{True} if the camera is adjusted, otherwise return \texttt{False}.
+  \item \texttt{get\_z}: Return the $z$-axis value of the camera.
+  \item \texttt{get\_position}: Return the position of the camera. The return type is $\left(x,y,z\right)$.
+  \item \texttt{get\_orientation}: Return the orientation of the camera. The return type is $\left(\mathrm{roll},\mathrm{pitch},\mathrm{yaw}\right)$.
+  \item \texttt{get\_camera\_matrix}: Return the camera matrix:
+  \[
+    \texttt{camera\_matrix}=\left(\begin{matrix}
+      f_x & 0 & c_x \\
+      0 & f_y & c_y \\
+      0 & 0 & 1
+    \end{matrix}\right)
+  \]
+  \item \texttt{get\_distortion\_coefficients}: Return the distortion coefficients:
+  \[
+    \texttt{distortion\_coefficients}=\left(\begin{matrix}
+      k_1 & k_2 & p_1 & p_2 & k_3
+    \end{matrix}\right)
+  \]
+  \textbf{Note: } 2 functions above has been stored since the initialization of the class. It won't change during the process.
+  \item \texttt{get\_location\_matrix}: Return the location matrix. It is a $3\times2$ matrix. The first line is the position in the ground coordinate system, and the second line is the orientation (Euler angle).
+  \[
+    \texttt{location\_matrix}=\left(\begin{matrix}
+      x & y & z \\
+      \mathrm{roll} & \mathrm{pitch} & \mathrm{yaw}
+    \end{matrix}\right)
+  \]
+  In this document, I may regard $\theta$ as the $\mathrm{roll}$, $\phi$ as the $\mathrm{pitch}$, and $\psi$ as the $\mathrm{yaw}$.
+\end{itemize}
+
+\subsubsection{\texttt{PUT} Methods -- Adjustment and Localization}
+
+The kernel provides functions to adjust the position and orientation of the camera. Then, you can use less \texttt{apriltags} to locate the camera.
+
+\paragraph{Adjustment}
+
+You can use the \texttt{adjust} method to adjust the position and orientation of the camera. The class will store $z$, $\mathrm{roll}$, and the $\mathrm{pitch}$ data.
+
+You need provide at least $6$ \texttt{apriltags} to adjust the camera. Or the class will raise an error: \texttt{At least 6 tags are required to adjust the camera}.
+
+\paragraph{Localization}
+
+The class will provide a packed method to locate the camera. No matter how many \texttt{apriltags} are in the view of the camera, the class will calculate the position and orientation of the camera, (except there's no \texttt{apriltags} in the view of the camera.)
 \end{document}

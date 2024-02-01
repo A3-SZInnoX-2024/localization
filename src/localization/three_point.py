@@ -10,7 +10,7 @@ def three_point_localization(
     dots: list[Detector],
     z: float32,
     roll: float32,
-    yaw: float32,
+    pitch: float32,
     camera_matrix: ndarray,
     dist_coeffs: ndarray = np.zeros(4),
 ):
@@ -27,11 +27,11 @@ def three_point_localization(
                     [0, np.cos(roll), -np.sin(roll)],
                     [0, np.sin(roll), np.cos(roll)]])
 
-    R_z = np.array([[np.cos(yaw), -np.sin(yaw), 0],
-                    [np.sin(yaw), np.cos(yaw), 0],
-                    [0, 0, 1]])
+    R_y = np.array([[np.cos(pitch), 0, np.sin(pitch)],
+                    [0, 1, 0],
+                    [-np.sin(pitch), 0, np.cos(pitch)]])
 
-    R = np.dot(R_z, R_x)
+    R = np.dot(R_x, R_y)
 
     T = np.array([[0], [0], [-z]])
 
