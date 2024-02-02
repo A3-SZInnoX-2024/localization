@@ -462,3 +462,6 @@ TSWLatexianTemp*
 #*Notes.bib
 
 data
+
+.DS_Store
+hue.py
