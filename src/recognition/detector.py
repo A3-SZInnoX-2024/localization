@@ -4,9 +4,25 @@ from cv2.typing import MatLike
 from ..configuration.colors import Color
 
 
-def filter_color(image: MatLike, color: Color):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    identified_colors = []
+def merge_duplicates(contours: list[np.ndarray], threshold: int = 10):
+    result = []
+    for cnt in contours:
+        if not result:
+            result.append(cnt)
+            continue
+
+        for r in result:
+            if np.linalg.norm(cnt - r) < threshold:
+                r = np.concatenate((r, cnt))
+                break
+        else:
+            result.append(cnt)
+
+    return result
+
+
+def filter_color(image: MatLike, hsv: MatLike, color: Color):
+    identified_colors: list[np.ndarray] = []
     for lower, upper in color.range:
         mask = cv2.inRange(hsv, lower, upper)
         result = cv2.bitwise_and(image, image, mask=mask)
@@ -15,15 +31,17 @@ def filter_color(image: MatLike, color: Color):
         contours, _ = cv2.findContours(
             mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        if contours:
-            print("found", color.name)
-            for countour in contours:
-                print(countour)
-                identified_colors.append(countour)
+
+        contours = merge_duplicates(contours)
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area < 1200:
+                continue
+
+            identified_colors.append(cnt)
 
     return color.name, identified_colors
-
-    # print(result)
 
 
 def n2_average(data: np.ndarray):
@@ -49,41 +67,17 @@ def detect(image: MatLike, colors: list[Color]):
 
     # Filter colors
 
+    result = []
+
     for color in colors:
-        color, contours = filter_color(image, color)
+        color, contours = filter_color(opening, hsv, color)
 
         for cnt in contours:
             # Draw a bounding box around the detected object
-            x, y, w, h = cv2.boundingRect(cnt)
-            if (w * h < 2000):
+            _, _, w, h = cv2.boundingRect(cnt)
+
+            if w * h < 2000:
                 continue
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            # Put the color name text on the object
-            cv2.putText(
-                image, color, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-            )
+            result.append(cnt)
 
-        cv2.imshow("image", image)
-
-    # # Filter contours
-    # result = []
-    # for cnt in contours:
-    #     area = cv2.contourArea(cnt)
-
-    #     if area < 800:
-    #         continue
-
-    #     avg = n2_average(cnt)
-
-    #     print(avg)
-
-    #     if area > 2000:
-    #         rect = cv2.minAreaRect(cnt)
-    #         box = cv2.boxPoints(rect)
-    #         box = np.intp(box)
-    #         result.append(box)
-
-    # # Draw contours
-    # cv2.drawContours(image, result, -1, (0, 0, 255), 3)
-
-    # return result
+    return result

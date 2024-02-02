@@ -3,6 +3,7 @@ from ..localization.kernel import Location
 from .camera import capture_image
 from .detector import detect
 from .locate import locate_block
+from cv2 import VideoCapture
 
 
 class BlockRecognition:
@@ -17,10 +18,11 @@ class BlockRecognition:
 
     def recognize(
         self,
+        capture: VideoCapture,
         *colors: tuple[str, tuple[tuple[int, int, int], tuple[int, int, int]]],
         z: float = 3.0
     ):
-        image = capture_image()
+        image = capture_image(capture)
 
         image_points = [(detect(image, color), color[0]) for color in colors]
 

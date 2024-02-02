@@ -13,6 +13,10 @@ class Color:
 
 
 def get_color_presets():
+    global colors
+
+    if colors is not None:
+        return colors
     # Load the color data
     with open("colors.json", "r") as file:
         color_data = json.load(file)

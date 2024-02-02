@@ -1,6 +1,12 @@
 import json
+from hashlib import md5 # check if the file is the same
 
 def get_tags():
+    global tgs
+
+    if tgs is not None:
+        return tgs
+
     with open('tags.json') as f:
         tags = json.load(f)
 
