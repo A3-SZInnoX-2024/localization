@@ -2,8 +2,22 @@ from fastapi import FastAPI
 import json
 from typing import Union
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 class Color(BaseModel):
@@ -61,6 +75,7 @@ def create_color(item: Color):
         json.dump({"colors": colors}, f)
 
     return None
+
 
 @app.post("/tags")
 def create_tag(item: Tag):
