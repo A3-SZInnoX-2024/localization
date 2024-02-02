@@ -1,6 +1,7 @@
 import numpy as np
 import json
 
+colors = []
 
 # Create a list of color tuples
 class Color:
@@ -15,7 +16,7 @@ class Color:
 def get_color_presets():
     global colors
 
-    if colors is not None:
+    if len(colors) > 0:
         return colors
     # Load the color data
     with open("colors.json", "r") as file:

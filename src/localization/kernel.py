@@ -5,7 +5,7 @@ from .adjustment import adjustment
 from .three_point import three_point_localization
 from .emergency import emergency_localization
 from ..calibration.file import load_calibration
-
+import easygui
 
 class Location:
     z, roll, pitch = None, None, None  # It won't change after initialization

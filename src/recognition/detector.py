@@ -2,22 +2,36 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 from ..configuration.colors import Color
+from sklearn.cluster import DBSCAN
+
+def dbscan(data: np.ndarray, eps: float = 2, min_samples: int = 5):
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+    clusters = dbscan.fit_predict(data)
+    return clusters
+
 
 
 def merge_duplicates(contours: list[np.ndarray], threshold: int = 10):
+    # result = []
+    # for cnt in contours:
+    #     if not result:
+    #         result.append(cnt)
+    #         continue
+
+    #     for r in result:
+    #         if np.linalg.norm(cnt - r) < threshold:
+    #             r = np.concatenate((r, cnt))
+    #             break
+    #     else:
+    #         result.append(cnt)
+
+    # return result
+    # Use DBSCAN to merge the contours
+    data = np.array([np.mean(cnt, axis=0) for cnt in contours])
+    clusters = dbscan(data)
     result = []
-    for cnt in contours:
-        if not result:
-            result.append(cnt)
-            continue
-
-        for r in result:
-            if np.linalg.norm(cnt - r) < threshold:
-                r = np.concatenate((r, cnt))
-                break
-        else:
-            result.append(cnt)
-
+    for i in range(len(clusters)):
+        result.append(np.concatenate([contours[j] for j in range(len(clusters)) if clusters[j] == i]))
     return result
 
 
@@ -32,7 +46,7 @@ def filter_color(image: MatLike, hsv: MatLike, color: Color):
             mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        contours = merge_duplicates(contours)
+        # contours = merge_duplicates(contours)
 
         for cnt in contours:
             area = cv2.contourArea(cnt)

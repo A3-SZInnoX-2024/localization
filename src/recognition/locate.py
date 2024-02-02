@@ -23,7 +23,8 @@ def locate_block(camera_location: Location, block_image_position: tuple[float, f
     transformation_matrix = np.hstack((R, T))
     transformation_matrix = np.vstack((transformation_matrix, [0, 0, 0, 1]))
 
-    u, v = block_image_position
+
+    u, v = block_image_position[0]
 
     uv_point = np.array([[u, v]], dtype=np.float32)
 
