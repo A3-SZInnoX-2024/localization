@@ -38,9 +38,11 @@ class Location:
         self.y = result[0][1]
         self.yaw = result[1][2]
 
-        print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
+        # print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
 
         self.adjusted = True
+
+        return result
 
     def is_adjusted(self):
         return self.adjusted
@@ -50,7 +52,7 @@ class Location:
 
     def locate(self, tags: list[Detection]):
         if not self.adjusted:
-            print("Because the camera is not adjusted, return None")
+            # print("Because the camera is not adjusted, return None")
             return None
 
         if len(tags) >= 3:
@@ -59,7 +61,7 @@ class Location:
             )
             position, orientation = location
             self.x, self.y, self.yaw = position[0], position[1], orientation[1]
-        else:
+        elif len(tags) > 0:
             location = emergency_localization(
                 tags, self.z, self.roll, self.pitch, self.camera_matrix, self.dist_coeffs
             )
@@ -67,6 +69,8 @@ class Location:
             if location is not None:
                 position, orientation = location
                 self.x, self.y, self.yaw = position[0], position[1], orientation[1]
+        else:
+            location = None
         return location
 
     def get_position(self):

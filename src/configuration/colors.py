@@ -20,7 +20,8 @@ def get_color_presets():
     colors = []
 
     for color in color_data["colors"]:
-        print(color)
         name = color["color"]
         color_range = np.array(color["range"])
         colors.append(Color(name, color_range))
+
+    return colors

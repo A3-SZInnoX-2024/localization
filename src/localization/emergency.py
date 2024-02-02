@@ -52,11 +52,35 @@ def emergency_localization(
 ):
     object_points, image_points = generate_points(tags, tag_width)
 
+    # Initialize parameters
+    R_x = np.array(
+        [[1, 0, 0], [0, np.cos(roll), -np.sin(roll)], [0, np.sin(roll), np.cos(roll)]]
+    )
+
+    R_y = np.array(
+        [
+            [np.cos(pitch), 0, np.sin(pitch)],
+            [0, 1, 0],
+            [-np.sin(pitch), 0, np.cos(pitch)],
+        ]
+    )
+
+    R = np.dot(R_x, R_y)
+
+    T = np.array([[0], [0], [-z]])
+
+    Rv, _ = cv2.Rodrigues(R)
+
+    # print(len(object_points), len(image_points))
+
     _, rvecs, tvecs = cv2.solvePnP(
         np.array(object_points, dtype=np.float32),
         np.array(image_points, dtype=np.float32),
         camera_matrix,
         dist_coeffs,
+        rvec=Rv,
+        tvec=T,
+        useExtrinsicGuess=True,
     )
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
