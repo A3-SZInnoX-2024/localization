@@ -8,6 +8,8 @@ def locate_block(camera_location: Location, block_image_position: tuple[float, f
     camera_matrix = camera_location.get_camera_matrix()
     dist_coeffs = camera_location.get_dist_coeffs()
 
+    print(block_image_position)
+
     # Rotation matrix
     R_x = np.array([[1, 0, 0],
                     [0, np.cos(camera_orientation[0]), -np.sin(camera_orientation[0])],
@@ -23,8 +25,7 @@ def locate_block(camera_location: Location, block_image_position: tuple[float, f
     transformation_matrix = np.hstack((R, T))
     transformation_matrix = np.vstack((transformation_matrix, [0, 0, 0, 1]))
 
-
-    u, v = block_image_position[0]
+    u, v = block_image_position
 
     uv_point = np.array([[u, v]], dtype=np.float32)
 

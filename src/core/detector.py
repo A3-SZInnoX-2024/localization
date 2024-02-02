@@ -82,7 +82,7 @@ class RobotCamera:
 
                     recognition = BlockRecognition(self.location, colors=get_color_presets())
 
-                    print(recognition.recognize(self.cap))
+                    (recognition.recognize(self.cap))
                     print("Camera located.", f"Location: {self.location.x, self.location.y, self.location.z},", f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}")
 
     def stop_continuous_capture(self):

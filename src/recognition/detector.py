@@ -4,11 +4,11 @@ from cv2.typing import MatLike
 from ..configuration.colors import Color
 from sklearn.cluster import DBSCAN
 
+
 def dbscan(data: np.ndarray, eps: float = 2, min_samples: int = 5):
     dbscan = DBSCAN(eps=eps, min_samples=min_samples)
     clusters = dbscan.fit_predict(data)
     return clusters
-
 
 
 def merge_duplicates(contours: list[np.ndarray], threshold: int = 10):
@@ -31,7 +31,11 @@ def merge_duplicates(contours: list[np.ndarray], threshold: int = 10):
     clusters = dbscan(data)
     result = []
     for i in range(len(clusters)):
-        result.append(np.concatenate([contours[j] for j in range(len(clusters)) if clusters[j] == i]))
+        result.append(
+            np.concatenate(
+                [contours[j] for j in range(len(clusters)) if clusters[j] == i]
+            )
+        )
     return result
 
 
@@ -84,14 +88,22 @@ def detect(image: MatLike, colors: list[Color]):
     result = []
 
     for color in colors:
+        name = color.name
         color, contours = filter_color(opening, hsv, color)
+
+        if len(contours) == 0:
+            continue
 
         for cnt in contours:
             # Draw a bounding box around the detected object
-            _, _, w, h = cv2.boundingRect(cnt)
+            x, y, w, h = cv2.boundingRect(cnt)
 
             if w * h < 2000:
                 continue
-            result.append(cnt)
+
+            # Get average
+
+            result.append((name, [x + w / 2, y + h / 2]))
+
 
     return result

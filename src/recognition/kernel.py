@@ -5,6 +5,7 @@ from .detector import detect
 from .locate import locate_block
 from cv2 import VideoCapture
 from ..configuration.colors import get_color_presets, Color
+from .utils import remove_duplicate
 
 
 class BlockRecognition:
@@ -31,7 +32,7 @@ class BlockRecognition:
     def recognize(self, capture: VideoCapture, z: float = 3.0):
         image = capture_image(capture)
 
-        print(self.colors)
+        # print(self.colors)
 
         image_points = detect(image, self.colors)
 
@@ -39,10 +40,11 @@ class BlockRecognition:
 
         result = []
 
-        for points in image_points:
-            for point in points:
-                position = locate_block(self.location, point, z)
-                result.append((points[0], position))
+        for block in image_points:
+            color, position = block
+            x, y, z = locate_block(self.location, position, z)
+            print(f"Color: {color}, Position: {x, y, z}")
+            result.append((color, (x, y, z)))
 
         self.blocks = result
 
