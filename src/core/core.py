@@ -13,7 +13,7 @@ from ..calibration.calibrate import calibrate
 from ..configuration.colors import get_color_presets
 
 
-class RobotCamera:
+class Core:
     cap: VideoCapture
     camera_matrix: np.ndarray
     distortion_coefficients: np.ndarray
@@ -23,6 +23,7 @@ class RobotCamera:
     frame: MatLike
     thread_locate = None
     thread_recognize = None
+    blocks: list[tuple[str, np.ndarray]]
 
     def __init__(self, capture: VideoCapture):
         self.cap = capture
@@ -74,16 +75,26 @@ class RobotCamera:
             if self.location.is_adjusted() is False and len(tags) > 6:
                 self.location.adjust(tags)
                 # self.start_block_detection()
-                print("Camera adjusted.", f"Location: {self.location.x, self.location.y, self.location.z},", f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}")
+                print(
+                    "Camera adjusted.",
+                    f"Location: {self.location.x, self.location.y, self.location.z},",
+                    f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}",
+                )
 
             if self.location.is_adjusted():
                 if len(tags) > 0:
                     self.location.locate(tags)
 
-                    recognition = BlockRecognition(self.location, colors=get_color_presets())
+                    recognition = BlockRecognition(
+                        self.location, colors=get_color_presets()
+                    )
 
-                    (recognition.recognize(self.cap))
-                    print("Camera located.", f"Location: {self.location.x, self.location.y, self.location.z},", f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}")
+                    self.blocks = recognition.recognize(self.cap)
+                    print(
+                        "Camera located.",
+                        f"Location: {self.location.x, self.location.y, self.location.z},",
+                        f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}",
+                    )
 
     def stop_continuous_capture(self):
         self.capturing = False
@@ -118,13 +129,21 @@ class RobotCamera:
 
         return self.frame
 
+    def get_available_blocks(self):
+        return self.blocks
+
+    def get_location(self):
+        return self.location
+
+
 def main():
     try:
         cap = cv2.VideoCapture(0)
-        camera = RobotCamera(cap)
+        camera = Core(cap)
     except Exception as e:
         tkinter.messagebox.showerror("Error", e)
         exit(1)
+
 
 if __name__ == "__main__":
     main()
