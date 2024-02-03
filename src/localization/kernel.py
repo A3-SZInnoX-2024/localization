@@ -29,13 +29,13 @@ class Location:
 
         result = adjustment(tags, self.camera_matrix, self.dist_coeffs)
 
-        self.z = result[0][2]
-        self.roll = result[1][0]
-        self.pitch = result[1][1]
+        self.z = result[2]
+        self.roll = result[3]
+        self.pitch = result[4]
 
-        self.x = result[0][0]
-        self.y = result[0][1]
-        self.yaw = result[1][2]
+        self.x = result[0]
+        self.y = result[1]
+        self.yaw = result[5]
 
         # print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
 
@@ -66,8 +66,7 @@ class Location:
             )
 
             if location is not None:
-                position, orientation = location
-                self.x, self.y, self.yaw = position[0], position[1], orientation[1]
+                self.x, self.y, self.yaw = location[0], location[1], location[5]
         else:
             location = None
         return location

@@ -2,10 +2,10 @@ from pupil_apriltags import Detection
 from .tag_location import get_points
 import numpy as np
 import cv2
-from .utils import handle_pnp_result
+from .heading import calculate_position
 
 
-def generate_points(tags: list[Detection], tag_width: float = 20.0):
+def generate_points(tags: list[Detection], tag_width: float = 205):
     object_points, image_points = [], []
 
     tags_object, tags_image = get_points(tags)
@@ -85,4 +85,4 @@ def emergency_localization(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    return handle_pnp_result(tvecs, R_mtx)
+    return calculate_position(R_mtx, tvecs)

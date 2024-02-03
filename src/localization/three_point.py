@@ -4,6 +4,7 @@ from numpy import float32, ndarray
 from pupil_apriltags import Detector
 from .tag_location import get_points
 from .utils import handle_pnp_result
+from .heading import calculate_position_with_heading
 
 
 def three_point_localization(
@@ -52,6 +53,4 @@ def three_point_localization(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    position, orientation = handle_pnp_result(tvecs, R_mtx)
-
-    return position, orientation
+    return handle_pnp_result(R_mtx, tvecs)

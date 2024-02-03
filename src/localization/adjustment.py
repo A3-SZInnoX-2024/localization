@@ -5,6 +5,7 @@ from .tag_location import get_points
 import cv2
 from .utils import handle_pnp_result
 from cv2.typing import MatLike
+from .heading import calculate_position
 
 def adjustment(
     tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike = np.zeros(5)
@@ -29,6 +30,6 @@ def adjustment(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    position, orientation = handle_pnp_result(tvecs, R_mtx)
+    position, orientation = calculate_position(R_mtx, tvecs)
 
     return position, orientation
