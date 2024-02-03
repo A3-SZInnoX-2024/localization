@@ -4,10 +4,10 @@ import numpy as np
 from .tag_location import get_points
 import cv2
 from .utils import handle_pnp_result
-
+from cv2.typing import MatLike
 
 def adjustment(
-    tags: list[Detection], camera_matrix: ndarray, dist_coeffs: ndarray = np.zeros(4)
+    tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike = np.zeros(5)
 ):
     # Initialize lists
     object_points, image_points = get_points(tags)
