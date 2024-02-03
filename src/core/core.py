@@ -11,6 +11,11 @@ import tkinter
 from ..calibration.from_camera import calibrate_with_chessboard
 from ..calibration.calibrate import calibrate
 from ..configuration.colors import get_color_presets
+from socketio import Server
+import json
+import tkinter.messagebox
+from .socket import sio, app
+import eventlet
 
 
 class Core:
@@ -27,7 +32,7 @@ class Core:
 
     def __init__(self, capture: VideoCapture):
         self.cap = capture
-
+        print(sio)
         try:
             calibration = load_calibration()
             self.camera_matrix = calibration["camera_matrix"]
@@ -85,6 +90,27 @@ class Core:
                 if len(tags) > 0:
                     self.location.locate(tags)
 
+                    if self.location.is_adjusted():
+                        print("Emitting location")
+
+                    result = sio.emit(
+                        "location",
+                        {
+                            "position": {
+                                "x": self.location.x,
+                                "y": self.location.y,
+                                "z": self.location.z,
+                            },
+                            "rotation": {
+                                "roll": self.location.roll,
+                                "pitch": self.location.pitch,
+                                "yaw": self.location.yaw,
+                            },
+                        },
+                    )
+
+                    print(result)
+
                     recognition = BlockRecognition(
                         self.location, colors=get_color_presets()
                     )
@@ -138,8 +164,15 @@ class Core:
 
 def main():
     try:
-        cap = cv2.VideoCapture(0)
-        camera = Core(cap)
+        core = Core(VideoCapture(0))
+        sio.emit("x", {"data": "test"})
+
+        @sio.event
+        def connect(sid, environ):
+            sio.emit("x", {"data": "test"})
+            print("Client connected", sid)
+
+        eventlet.wsgi.server(eventlet.listen(("", 8080)), app)
     except Exception as e:
         tkinter.messagebox.showerror("Error", e)
         exit(1)

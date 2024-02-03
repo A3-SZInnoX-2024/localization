@@ -62,7 +62,6 @@ That's the biggest reason why I strongly recommend navigating with \texttt{OpenC
 
 Becuase we don't use \texttt{ROS}, so we can test the camera with my laptop. The Apple 1080P camera can help me to test the algorithm. As for the calculation difference, it is not so big.
 
-
 \section{Targets}
 
 There are several targets in this project:
@@ -170,12 +169,12 @@ Define the original matrixes of rotate and transform through these elements:
       0 & \sin\alpha & \cos\alpha
     \end{matrix}
   \right),
-  \boldsymbol{R}_z=
+  \boldsymbol{R}_y=
   \left(
     \begin{matrix}
-      \cos\gamma & -\sin\gamma & 0 \\
-      \sin\gamma & \cos\gamma & 0 \\
-      0 & 0 & 1
+      \cos\beta & 0 & \sin\beta \\
+      0 & 1 & 0 \\
+      -\sin\beta & 0 & \cos\beta
     \end{matrix}
   \right)
 \end{equation}
@@ -183,11 +182,11 @@ Define the original matrixes of rotate and transform through these elements:
 Then, we can get the rotate ``bias'' matrix:
 
 \begin{equation}
-  \boldsymbol{R}_{\texttt{bias}}=\boldsymbol{R}_x\cdot \boldsymbol{R}_z= \left(
+  \boldsymbol{R}_{\texttt{bias}}=\boldsymbol{R}_x\cdot \boldsymbol{R}_y= \left(
     \begin{matrix}
-      \cos\gamma & -\sin\gamma & 0 \\
-      \sin\gamma\cos\alpha & \cos\gamma\cos\alpha & -\sin\alpha \\
-      \sin\gamma\sin\alpha & \cos\gamma\sin\alpha & \cos\alpha
+      \cos\beta & 0 & \sin\beta \\
+      \sin\alpha\sin\beta & \cos\alpha & -\sin\alpha\cos\beta \\
+      -\cos\alpha\sin\beta & \sin\alpha & \cos\alpha\cos\beta
     \end{matrix}
   \right)
 \end{equation}
@@ -288,7 +287,9 @@ The reason why the arithmetic mean is not used is because I think it is not eleg
 
 \subsection{Communicating}
 
-Finally, we select \texttt{ROS} to communicate with the robot. It is not implemented yet.
+Because the version supportation problems, we finally decide to use \texttt{socket.io} to communicate between the contorl kernel and the vision module. The \texttt{python-socketio} provides the full package, and we can easily realize it.
+
+The communication can be described as only the \texttt{send-to-receive} procedure. THe CV core sends the location data, and the control core (maybe \texttt{ROS}) receive it and send it to the computing program to calculate the best way.
 
 \section{Algorithm Implementation}
 
@@ -452,4 +453,57 @@ The color recognition can work properly. The picture above can show the effect.
 \includegraphics[width=0.8\textwidth]{figure/r-1.png}
 
 Then, adding the mask can make the recognition more accurate. We can recognize the border and then calculate the position of the block.
+
+\appendix
+
+\section{Color Sections}
+
+Because there are 5 colors of the block, and they are \textbf{red}, \textbf{yellow}, \textbf{green}, \textbf{blue}, and \textbf{orange}. The color recognition is quite important.
+
+Using \texttt{HSV} color space, we can easily recognize the color of the block.
+
+\begin{table}
+    \centering
+    \begin{tabular}{ccc}
+        \hfill
+        \textbf{Color} & \textbf{Lower} & \textbf{Upper} \\
+        \hfill
+        \textbf{Red} & $\left(\begin{matrix}178&230&30\end{matrix}\right)$ & $\left(\begin{matrix}1&255&135\end{matrix}\right)$ \\
+        \textbf{Yellow} & $\left(\begin{matrix}18&160&120\end{matrix}\right)$ & $\left(\begin{matrix}24&245&220\end{matrix}\right)$ \\
+        \textbf{Green} & $\left(\begin{matrix}72&150&40\end{matrix}\right)$ & $\left(\begin{matrix}84&225&112\end{matrix}\right)$ \\
+        \textbf{Blue} & $\left(\begin{matrix}100&145&60\end{matrix}\right)$ & $\left(\begin{matrix}115&196&135\end{matrix}\right)$ \\
+        \textbf{Orange} & $\left(\begin{matrix}3&230&90\end{matrix}\right)$ & $\left(\begin{matrix}12&255&200\end{matrix}\right)$ \\
+        \hfill
+    \end{tabular}
+    \caption{Color Range}
+\end{table}
+
+And it is tested with the camera.
+
+\section{Camera Matrix \& Distortion Coefficients}
+
+After using the chess board, I finally get the camera matrix and the distortion coefficients. The data is saved in \texttt{data/calibration.npz}.
+
+The test camera (My MacBook Pro FaceTime 1080P Camera) can get the camera matrix and the distortion coefficients:
+
+\[
+  \texttt{camera\_matrix}=\left(\begin{matrix}
+    1503.75365 & 0.0 & 899.284676 \\
+    0.0 & 1514.5398703 & 367.845474 \\
+    0.0 & 0.0 & 1.0
+  \end{matrix}\right)
+\]
+
+\[
+  \texttt{distortion\_coefficients}=\left(\begin{matrix}
+    -0.01056663 & 0.30294403 & -0.07029588 & -0.02169794 & -0.44549622
+  \end{matrix}\right)
+\]
+
+\section{Git Repository}
+
+The project is stored in the \texttt{GitHub} repository. You can visit the repository through the link: \url{
+    https://github.com/A3-SZInnoX-2024/localization.git
+}
+
 \end{document}
