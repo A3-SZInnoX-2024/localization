@@ -9,7 +9,7 @@ from .heading import calculate_position
 
 def adjustment(
     tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike = np.zeros(5)
-):
+) -> ndarray:
     # Initialize lists
     object_points, image_points = get_points(tags)
 
@@ -30,6 +30,4 @@ def adjustment(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    position, orientation = calculate_position(R_mtx, tvecs)
-
-    return position, orientation
+    return calculate_position(R_mtx, tvecs)

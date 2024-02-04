@@ -51,19 +51,8 @@ def matrix_ctow(tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatL
 
 
 def generate_homogeneous_matrix(R_mtx: MatLike, tvecs: MatLike, invert=False):
-    # Initialize the homogeneous matrix
-    homogeneous_matrix = np.zeros((4, 4))
-
-    # Set the rotation matrix
-    homogeneous_matrix[:3, :3] = R_mtx
-
-    print(homogeneous_matrix[:3, 3], tvecs.flatten(), tvecs, 'hello')
-
-    # Set the translation vector
-    homogeneous_matrix[:3, 3] = tvecs.flatten()
-
-    # Set the bottom row
-    homogeneous_matrix[3, 3] = 1
+    stacked = np.hstack((R_mtx, tvecs))
+    homogeneous_matrix = np.vstack((stacked, np.array([0, 0, 0, 1])))
 
     if invert:
         return np.linalg.inv(homogeneous_matrix)

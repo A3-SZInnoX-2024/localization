@@ -4,6 +4,7 @@ import numpy as np
 from ..calibration.external.file import load_external_parameters
 import cv2
 
+
 def calculate_position_with_heading(
     R_mtx: MatLike,
 ):
@@ -14,26 +15,38 @@ def calculate_position_with_heading(
 
     return heading
 
+
 def calculate_position(
     R_mtx: MatLike,
     tvecs: MatLike,
 ):
     external_parameters = load_external_parameters()
-
-    homogeneous_matrix = external_parameters['homogeneous_matrix']
-
+    homogeneous_matrix = external_parameters["homogeneous_matrix"]
     homo_rotate_matrix = homogeneous_matrix[:3, :3]
-
     rotate_matrix = np.dot(homo_rotate_matrix, R_mtx)
 
-    roll, pitch, yaw = cv2.decomposeProjectionMatrix(rotate_matrix)[:3]
+    eular = matrix_to_eular_angle(rotate_matrix)
 
+    roll, pitch, yaw = eular
     x, y, z = tvecs
-
-    vec = np.array([[x], [y], [z], [1]])
+    vec = np.array([x, y, z, [1]])
 
     vec_vehicle = np.dot(np.linalg.inv(homogeneous_matrix), vec)
-
-    x_vehicle, y_vehicle, z_vehicle, _ = vec_vehicle
-
+    x_vehicle, y_vehicle, z_vehicle, _ = list(map(lambda x: x[0], vec_vehicle))
     return x_vehicle, y_vehicle, z_vehicle, roll, pitch, yaw
+
+
+def matrix_to_eular_angle(R_mtx: MatLike):
+    sy = np.sqrt(R_mtx[0, 0] * R_mtx[0, 0] + R_mtx[1, 0] * R_mtx[1, 0])
+    singular = sy < 1e-6
+
+    if not singular:
+        roll = np.arctan2(R_mtx[2, 1], R_mtx[2, 2])
+        pitch = np.arctan2(-R_mtx[2, 0], sy)
+        yaw = np.arctan2(R_mtx[1, 0], R_mtx[0, 0])
+    else:
+        roll = np.arctan2(-R_mtx[1, 2], R_mtx[1, 1])
+        pitch = np.arctan2(-R_mtx[2, 0], sy)
+        yaw = 0
+
+    return np.degrees([roll, pitch, yaw])

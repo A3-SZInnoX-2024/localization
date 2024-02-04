@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from ..localization.kernel import Location
+from .vtoc import restore_from_vehicle
 
 def locate_block(camera_location: Location, block_image_position: tuple[float, float], Z_c: np.float32):
     camera_position = camera_location.get_position()
@@ -22,8 +23,11 @@ def locate_block(camera_location: Location, block_image_position: tuple[float, f
                     [0, 0, 1]])
     R = np.dot(R_z, np.dot(R_y, R_x))
     T = camera_position.reshape(3, 1)
-    transformation_matrix = np.hstack((R, T))
-    transformation_matrix = np.vstack((transformation_matrix, [0, 0, 0, 1]))
+    matrix_vtow = np.hstack((R, T))
+    matrix_vtow = np.vstack((matrix_vtow, [0, 0, 0, 1]))
+    matrix_ctov = restore_from_vehicle()
+
+    transformation_matrix = np.dot(matrix_ctov, matrix_vtow)
 
     u, v = block_image_position
 

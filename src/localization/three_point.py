@@ -3,9 +3,8 @@ import numpy as np
 from numpy import float32, ndarray
 from pupil_apriltags import Detector
 from .tag_location import get_points
-from .utils import handle_pnp_result
-from .heading import calculate_position_with_heading
-
+from .heading import calculate_position
+from .emergency import generate_points
 
 def three_point_localization(
     dots: list[Detector],
@@ -14,7 +13,9 @@ def three_point_localization(
     pitch: float32,
     camera_matrix: ndarray,
     dist_coeffs: ndarray = np.zeros(4),
+    use_corners: bool = False,
 ):
+    # print('3points', dots, z, roll, pitch, camera_matrix, dist_coeffs)
     # Check if `camera_matrix` is a 3x3 matrix
     if camera_matrix.shape != (3, 3):
         return None
@@ -39,7 +40,11 @@ def three_point_localization(
     Rv, _ = cv2.Rodrigues(R)
 
     # Initialize lists
-    object_points, image_points = get_points(dots)
+
+    if use_corners:
+        object_points, image_points = generate_points(dots)
+    else:
+        object_points, image_points = get_points(dots)
 
     _, rvecs, tvecs = cv2.solvePnP(
         np.array(object_points, dtype=np.float32),
@@ -53,4 +58,4 @@ def three_point_localization(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    return handle_pnp_result(R_mtx, tvecs)
+    return calculate_position(R_mtx, tvecs)

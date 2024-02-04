@@ -6,6 +6,7 @@ from .three_point import three_point_localization
 from .emergency import emergency_localization
 from ..calibration.file import load_calibration
 
+
 class Location:
     z, roll, pitch = None, None, None  # It won't change after initialization
     x, y, yaw = None, None, None  # It will change after initialization
@@ -29,14 +30,8 @@ class Location:
 
         result = adjustment(tags, self.camera_matrix, self.dist_coeffs)
 
-        self.z = result[2]
-        self.roll = result[3]
-        self.pitch = result[4]
-
-        self.x = result[0]
-        self.y = result[1]
-        self.yaw = result[5]
-
+        if result is not None:
+            self.x, self.y, self.z, self.roll, self.pitch, self.yaw = result
         # print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
 
         self.adjusted = True
@@ -56,13 +51,23 @@ class Location:
 
         if len(tags) >= 3:
             location = three_point_localization(
-                tags, self.z, self.roll, self.pitch, self.camera_matrix, self.dist_coeffs
+                tags,
+                self.z,
+                self.roll,
+                self.pitch,
+                self.camera_matrix,
+                self.dist_coeffs,
+                use_corners=True,
             )
-            position, orientation = location
-            self.x, self.y, self.yaw = position[0], position[1], orientation[1]
+            self.x, self.y, self.yaw = location[0], location[1], location[5]
         elif len(tags) > 0:
             location = emergency_localization(
-                tags, self.z, self.roll, self.pitch, self.camera_matrix, self.dist_coeffs
+                tags,
+                self.z,
+                self.roll,
+                self.pitch,
+                self.camera_matrix,
+                self.dist_coeffs,
             )
 
             if location is not None:
