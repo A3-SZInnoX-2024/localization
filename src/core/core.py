@@ -11,12 +11,8 @@ import tkinter
 from ..calibration.from_camera import calibrate_with_chessboard
 from ..calibration.calibrate import calibrate
 from ..configuration.colors import get_color_presets
-from socketio import Server
-import json
+from socketio import Client
 import tkinter.messagebox
-from .socket import sio, app
-import eventlet
-
 
 class Core:
     cap: VideoCapture
@@ -29,10 +25,14 @@ class Core:
     thread_locate = None
     thread_recognize = None
     blocks: list[tuple[str, np.ndarray]]
+    client: Client
 
     def __init__(self, capture: VideoCapture):
         self.cap = capture
-        print(sio)
+        # print(sio)
+        client = Client()
+        client.connect("http://localhost:8000")
+        self.client = client
         try:
             calibration = load_calibration()
             self.camera_matrix = calibration["camera_matrix"]
@@ -93,20 +93,16 @@ class Core:
                     if self.location.is_adjusted():
                         print("Emitting location")
 
-                    result = sio.emit(
+                    result = self.client.emit(
                         "location",
-                        {
-                            "position": {
-                                "x": self.location.x,
-                                "y": self.location.y,
-                                "z": self.location.z,
-                            },
-                            "rotation": {
-                                "roll": self.location.roll,
-                                "pitch": self.location.pitch,
-                                "yaw": self.location.yaw,
-                            },
-                        },
+                        [
+                            self.location.x,
+                            self.location.y,
+                            self.location.z,
+                            self.location.roll,
+                            self.location.pitch,
+                            self.location.yaw,
+                        ],
                     )
 
                     print(result)
@@ -165,14 +161,6 @@ class Core:
 def main():
     try:
         core = Core(VideoCapture(0))
-        sio.emit("x", {"data": "test"})
-
-        @sio.event
-        def connect(sid, environ):
-            sio.emit("x", {"data": "test"})
-            print("Client connected", sid)
-
-        eventlet.wsgi.server(eventlet.listen(("", 8080)), app)
     except Exception as e:
         tkinter.messagebox.showerror("Error", e)
         exit(1)
