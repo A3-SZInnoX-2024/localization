@@ -2,7 +2,6 @@ from cv2.typing import MatLike
 from ..calibration.external.calibrate import generate_homogeneous_matrix
 import numpy as np
 from ..calibration.external.file import load_external_parameters
-import cv2
 
 
 def calculate_position_with_heading(

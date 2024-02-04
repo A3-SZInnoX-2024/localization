@@ -1,4 +1,3 @@
-import numpy as np
 import tkinter.messagebox as tkmb
 import cv2
 from typing import Sequence

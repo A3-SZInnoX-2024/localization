@@ -13,7 +13,7 @@ def three_point_localization(
     pitch: float32,
     camera_matrix: ndarray,
     dist_coeffs: ndarray = np.zeros(4),
-    use_corners: bool = False,
+    use_corners: bool = True,
 ):
     # print('3points', dots, z, roll, pitch, camera_matrix, dist_coeffs)
     # Check if `camera_matrix` is a 3x3 matrix
@@ -51,9 +51,9 @@ def three_point_localization(
         np.array(image_points, dtype=np.float32),
         camera_matrix,
         dist_coeffs,
-        rvec=Rv,
-        tvec=T,
-        useExtrinsicGuess=True,
+        # rvec=Rv,
+        # tvec=T,
+        # useExtrinsicGuess=True,
     )
 
     R_mtx, _ = cv2.Rodrigues(rvecs)

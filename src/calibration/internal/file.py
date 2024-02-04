@@ -25,7 +25,8 @@ def load_internal_parameters():
     if not is_internal_parameters_exists():
         tkmb.showerror("Error", "The internal parameters do not exist. You need run `python -m src.calibration.internal.calibrate` first.")
         exit(1)
-    return np.load(load_path())
+    result = np.load(load_path())
+    return result
 
 
 def is_internal_parameters_exists():

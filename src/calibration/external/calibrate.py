@@ -1,11 +1,3 @@
-"""
-1. 确定 AprilTag 的位置, 调用 `solvePnP` 函数获取旋转向量和平移向量
-2. 通过 `Rodrigues` 函数将旋转向量转换为旋转矩阵
-3. 拼接矩阵 (R, T) 作为 camera - world 的变换矩阵, 并且逆运算得到 world - camera 的变换矩阵
-4. 通过已知机器人的位置, 获得 vehicle - world 的变换矩阵
-5. 通过 `np.dot` 函数将两个变换矩阵相乘, 得到 vehicle - camera 的变换矩阵, 并且逆运算得到 camera - vehicle 的变换矩阵
-"""
-
 import cv2
 from pupil_apriltags import Detection
 from cv2.typing import MatLike
@@ -64,24 +56,26 @@ def matrix_wtov(tagid: int):
     world_location = np.array([x_world, y_world, 0])
     vehicle_location = np.array([0, 0, 0])
 
-    R_mtx = np.array([[1, 0, 0],
-                      [0, 1, 0],
-                      [0, 0, 1]])
+    R_mtx = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
     tvecs = world_location - vehicle_location
 
     return generate_homogeneous_matrix(R_mtx, tvecs, invert=True)
 
 
-def matrix_ctov(tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike, position_tag: int):
+def matrix_ctov(
+    tags: list[Detection],
+    camera_matrix: MatLike,
+    dist_coeffs: MatLike,
+    position_tag: int,
+):
     matrix_ctow_result = matrix_ctow(tags, camera_matrix, dist_coeffs)
     matrix_wtov_result = matrix_wtov(position_tag)
 
     return np.dot(matrix_ctow_result, matrix_wtov_result)
 
-def calibrate_external(
-    tags: list[Detection]
-):
+
+def calibrate_external(tags: list[Detection]):
     tag_id = tksd.askinteger("Tag ID", "Enter the tag ID of the vehicle.")
 
     if tag_id is None:
@@ -104,21 +98,28 @@ def calibrate_external(
 
     # return matrix_ctov_result
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from pupil_apriltags import Detector
+
     cap = cv2.VideoCapture(0)
 
     while True:
         ret, frame = cap.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        detector = Detector(families='tag36h11')
+        detector = Detector(families="tag36h11")
         tags = detector.detect(gray)
         if len(tags) > 5:
             calibrate_external(tags)
             break
         for tag in tags:
             for idx in range(len(tag.corners)):
-                cv2.line(frame, tuple(tag.corners[idx - 1].astype(int)), tuple(tag.corners[idx].astype(int)), (0, 255, 0))
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.line(
+                    frame,
+                    tuple(tag.corners[idx - 1].astype(int)),
+                    tuple(tag.corners[idx].astype(int)),
+                    (0, 255, 0),
+                )
+        cv2.imshow("frame", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break

@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import sys
-import os
 from ..localization.kernel import Location
 
 

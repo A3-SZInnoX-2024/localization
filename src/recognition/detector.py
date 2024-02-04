@@ -11,22 +11,7 @@ def dbscan(data: np.ndarray, eps: float = 2, min_samples: int = 5):
     return clusters
 
 
-def merge_duplicates(contours: list[np.ndarray], threshold: int = 10):
-    # result = []
-    # for cnt in contours:
-    #     if not result:
-    #         result.append(cnt)
-    #         continue
-
-    #     for r in result:
-    #         if np.linalg.norm(cnt - r) < threshold:
-    #             r = np.concatenate((r, cnt))
-    #             break
-    #     else:
-    #         result.append(cnt)
-
-    # return result
-    # Use DBSCAN to merge the contours
+def merge_duplicates(contours: list[np.ndarray]):
     data = np.array([np.mean(cnt, axis=0) for cnt in contours])
     clusters = dbscan(data)
     result = []

@@ -9,7 +9,7 @@ from .utils import remove_duplicate
 
 
 class BlockRecognition:
-    blocks: list[tuple[str, np.ndarray]]  # List of tuple[color, position]
+    blocks: list[tuple[str, np.ndarray]]
     location: Location
     colors: list[Color]
 
@@ -31,8 +31,6 @@ class BlockRecognition:
 
     def recognize(self, capture: VideoCapture, z: float = 3.0):
         image = capture_image(capture)
-
-        # print(self.colors)
 
         image_points = detect(image, self.colors)
 

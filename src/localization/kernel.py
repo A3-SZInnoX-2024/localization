@@ -2,9 +2,9 @@ from pupil_apriltags import Detection
 from numpy import ndarray
 import numpy as np
 from .adjustment import adjustment
-from .three_point import three_point_localization
-from .emergency import emergency_localization
-from ..calibration.file import load_calibration
+from .localization import localization
+from ..calibration.internal.file import load_internal_parameters
+from ..calibration.external.file import load_external_parameters
 
 
 class Location:
@@ -12,15 +12,18 @@ class Location:
     x, y, yaw = None, None, None  # It will change after initialization
     camera_matrix = None
     dist_coeffs = None
+    homo_matrix = None
     adjusted = False
 
-    def __init__(self, camera_matrix: ndarray, dist_coeffs: ndarray = np.zeros(4)):
+    def __init__(self, camera_matrix: ndarray, dist_coeffs: ndarray, homo_matrix: ndarray):
         if camera_matrix is None or dist_coeffs is None:
-            calibration = load_calibration()
-            if calibration is None:
+            internal = load_internal_parameters()
+            external = load_external_parameters()
+            if internal is None or external is None:
                 raise Exception("Calibration file does not exist")
-            camera_matrix = calibration["camera_matrix"]
-            dist_coeffs = calibration["dist_coeffs"]
+            camera_matrix = internal["camera_matrix"]
+            dist_coeffs = internal["dist_coeffs"]
+            homo_matrix = external["homogeneous_matrix"]
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
 
@@ -49,32 +52,13 @@ class Location:
             # print("Because the camera is not adjusted, return None")
             return None
 
-        if len(tags) >= 3:
-            location = three_point_localization(
-                tags,
-                self.z,
-                self.roll,
-                self.pitch,
-                self.camera_matrix,
-                self.dist_coeffs,
-                use_corners=True,
-            )
-            self.x, self.y, self.yaw = location[0], location[1], location[5]
-        elif len(tags) > 0:
-            location = emergency_localization(
-                tags,
-                self.z,
-                self.roll,
-                self.pitch,
-                self.camera_matrix,
-                self.dist_coeffs,
-            )
-
-            if location is not None:
-                self.x, self.y, self.yaw = location[0], location[1], location[5]
-        else:
-            location = None
-        return location
+        if len(tags) > 0:
+            result = localization(tags, self.camera_matrix, self.dist_coeffs, )
+            if result is not None:
+                self.x, self.y, self.yaw = result
+                return result
+            else:
+                return None
 
     def get_position(self):
         return np.array([self.x, self.y, self.z])

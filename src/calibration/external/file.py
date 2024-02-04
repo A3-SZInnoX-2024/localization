@@ -12,10 +12,10 @@ def load_path():
     return path
 
 
-def save_external_parameters(homogeneous_matrix: np.ndarray):
+def save_external_parameters(homo_matrix: np.ndarray):
     np.savez(
         load_path(),
-        homogeneous_matrix=homogeneous_matrix,
+        homo_matrix=homo_matrix,
     )
 
 

@@ -3,7 +3,6 @@ from numpy import ndarray
 import numpy as np
 from .tag_location import get_points
 import cv2
-from .utils import handle_pnp_result
 from cv2.typing import MatLike
 from .heading import calculate_position
 

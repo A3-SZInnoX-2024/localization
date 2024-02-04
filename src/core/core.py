@@ -3,21 +3,22 @@ from ..localization.kernel import Location
 from ..recognition.kernel import BlockRecognition
 from pupil_apriltags import Detector
 import numpy as np
-from ..calibration.file import load_calibration, save_calibration
 from cv2.typing import MatLike
 import threading
 import cv2
 import tkinter
-from ..calibration.from_camera import calibrate_with_chessboard
-from ..calibration.calibrate import calibrate
 from ..configuration.colors import get_color_presets
 from socketio import Client
 import tkinter.messagebox
+from ..calibration.internal.file import load_internal_parameters
+from ..calibration.external.file import load_external_parameters
+
 
 class Core:
     cap: VideoCapture
     camera_matrix: np.ndarray
     distortion_coefficients: np.ndarray
+    homogeneous_matrix: np.ndarray
     location: Location
     capturing: bool = False
     detector: Detector
@@ -33,33 +34,23 @@ class Core:
         client = Client()
         client.connect("http://localhost:8000")
         self.client = client
-        try:
-            calibration = load_calibration()
-            self.camera_matrix = calibration["camera_matrix"]
-            self.distortion_coefficients = calibration["dist_coeffs"]
-        except:
-            measure = tkinter.messagebox.askokcancel(
-                "Do you want to calibrate it now?",
-                "Calibration file does not exist. Do you want to launch your camera to capture and calculate the calibration?",
-            )
 
-            if not measure:
-                tkinter.messagebox.showerror("Error", "Calibration file does not exist")
-                exit(1)
-            else:
-                tkinter.messagebox.showinfo(
-                    "Information",
-                    "Please show the chessboard to the camera with different angles and distances",
-                )
-                object_points, image_points, shape = calibrate_with_chessboard()
+        cont = tkinter.messagebox.askyesno(
+            "Confirm",
+            "Please confirm the camera is calibrated. If not, please calibrate it now with `python -m src.calibration.internal.core` and `python -m src.calibration.external.calibrate`",
+        )
 
-                self.camera_matrix, self.distortion_coefficients = calibrate(
-                    object_points, image_points, shape
-                )
+        if cont is False:
+            exit(0)
 
-                save_calibration(self.camera_matrix, self.distortion_coefficients)
+        internal_parameters = load_internal_parameters()
+        external_parameters = load_external_parameters()
 
-                tkinter.messagebox.showinfo("Information", "Calibration was successful")
+        self.camera_matrix = internal_parameters["camera_matrix"]
+        self.distortion_coefficients = internal_parameters["dist_coeffs"]
+        self.homogeneous_matrix = external_parameters["homogeneous_matrix"]
+
+        print(self.camera_matrix, self.distortion_coefficients, self.homogeneous_matrix)
 
         self.location = Location(self.camera_matrix, self.distortion_coefficients)
         self.detector = Detector(families="tag36h11", nthreads=1)
@@ -79,7 +70,7 @@ class Core:
 
             if self.location.is_adjusted() is False and len(tags) > 6:
                 self.location.adjust(tags)
-                # self.start_block_detection()
+
                 print(
                     "Camera adjusted.",
                     f"Location: {self.location.x, self.location.y, self.location.z},",
@@ -161,6 +152,7 @@ class Core:
 def main():
     try:
         core = Core(VideoCapture(0))
+        print(core)
     except Exception as e:
         tkinter.messagebox.showerror("Error", e)
         exit(1)

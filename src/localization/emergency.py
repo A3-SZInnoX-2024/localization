@@ -16,14 +16,12 @@ def generate_points(tags: list[Detection], tag_width: float = 205):
 
         x, y, z = tag_object
 
-        lb_image, lt_image, rt_image, rb_image = tag.corners
+        lt_image, rt_image, rb_image, lb_image = tag.corners
 
-        lb_object, lt_object, rt_object, rb_object = (
-            (x - tag_width / 2, y - tag_width / 2, z),
-            (x - tag_width / 2, y + tag_width / 2, z),
-            (x + tag_width / 2, y + tag_width / 2, z),
-            (x + tag_width / 2, y - tag_width / 2, z),
-        )
+        lt_object = (x - tag_width / 2, y + tag_width / 2, z)
+        rt_object = (x + tag_width / 2, y + tag_width / 2, z)
+        rb_object = (x + tag_width / 2, y - tag_width / 2, z)
+        lb_object = (x - tag_width / 2, y - tag_width / 2, z)
 
         object_points.append(lb_object)
         object_points.append(lt_object)
@@ -78,9 +76,9 @@ def emergency_localization(
         np.array(image_points, dtype=np.float32),
         camera_matrix,
         dist_coeffs,
-        rvec=Rv,
-        tvec=T,
-        useExtrinsicGuess=True,
+        # rvec=Rv,
+        # tvec=T,
+        # useExtrinsicGuess=True,
     )
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
