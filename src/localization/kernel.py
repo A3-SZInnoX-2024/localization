@@ -26,16 +26,16 @@ class Location:
             homo_matrix = external["homogeneous_matrix"]
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
+        self.homo_matrix = homo_matrix
 
     def adjust(self, tags: list[Detection]):
         if len(tags) < 6:
             raise Exception("At least 6 tags are required to adjust the camera")
 
-        result = adjustment(tags, self.camera_matrix, self.dist_coeffs)
+        result = adjustment(tags, self.camera_matrix, self.dist_coeffs, self.homo_matrix)
 
         if result is not None:
             self.x, self.y, self.z, self.roll, self.pitch, self.yaw = result
-        # print(f"z: {self.z}, roll: {self.roll}, pitch: {self.pitch}")
 
         self.adjusted = True
 
@@ -49,13 +49,12 @@ class Location:
 
     def locate(self, tags: list[Detection]):
         if not self.adjusted:
-            # print("Because the camera is not adjusted, return None")
             return None
 
         if len(tags) > 0:
-            result = localization(tags, self.camera_matrix, self.dist_coeffs, )
+            result = localization(tags, self.camera_matrix, self.dist_coeffs, self.homo_matrix)
             if result is not None:
-                self.x, self.y, self.yaw = result
+                self.x, self.y, _, _, _, self.yaw = result
                 return result
             else:
                 return None

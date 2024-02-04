@@ -7,7 +7,7 @@ from cv2.typing import MatLike
 from .heading import calculate_position
 
 def adjustment(
-    tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike = np.zeros(5)
+    tags: list[Detection], camera_matrix: MatLike, dist_coeffs: MatLike, homo_matrix: MatLike
 ) -> ndarray:
     # Initialize lists
     object_points, image_points = get_points(tags)
@@ -29,4 +29,4 @@ def adjustment(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    return calculate_position(R_mtx, tvecs)
+    return calculate_position(R_mtx, tvecs, homo_matrix)

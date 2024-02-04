@@ -47,11 +47,9 @@ class Core:
 
         self.camera_matrix = internal_parameters["camera_matrix"]
         self.distortion_coefficients = internal_parameters["dist_coeffs"]
-        self.homogeneous_matrix = external_parameters["homogeneous_matrix"]
+        self.homogeneous_matrix = external_parameters["homo_matrix"]
 
-        print(self.camera_matrix, self.distortion_coefficients, self.homogeneous_matrix)
-
-        self.location = Location(self.camera_matrix, self.distortion_coefficients)
+        self.location = Location(self.camera_matrix, self.distortion_coefficients, self.homogeneous_matrix)
         self.detector = Detector(families="tag36h11", nthreads=1)
         self.start_continuous_capture()
 
@@ -70,43 +68,20 @@ class Core:
             if self.location.is_adjusted() is False and len(tags) > 6:
                 self.location.adjust(tags)
 
-                print(
-                    "Camera adjusted.",
-                    f"Location: {self.location.x, self.location.y, self.location.z},",
-                    f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}",
-                )
-
             if self.location.is_adjusted():
                 if len(tags) > 0:
                     self.location.locate(tags)
 
-                    if self.location.is_adjusted():
-                        print("Emitting location")
-
                     result = self.client.emit(
-                        "location",
-                        [
-                            self.location.x,
-                            self.location.y,
-                            self.location.z,
-                            self.location.roll,
-                            self.location.pitch,
-                            self.location.yaw,
-                        ],
+                        "location-cv",
+                        (self.location.x, self.location.y, self.location.yaw),
                     )
-
-                    print(result)
 
                     recognition = BlockRecognition(
                         self.location, colors=get_color_presets()
                     )
 
                     self.blocks = recognition.recognize(self.cap)
-                    print(
-                        "Camera located.",
-                        f"Location: {self.location.x, self.location.y, self.location.z},",
-                        f"Rotation: {self.location.roll, self.location.pitch, self.location.yaw}",
-                    )
 
     def stop_continuous_capture(self):
         self.capturing = False
@@ -121,7 +96,6 @@ class Core:
         while self.capturing and self.location.is_adjusted():
             recognition = BlockRecognition(self.location, colors=get_color_presets())
             result = recognition.recognize(self.cap)
-            print(result)
 
     def stop_block_detection(self):
         self.thread_recognize.join()
@@ -149,12 +123,7 @@ class Core:
 
 
 def main():
-    try:
-        core = Core(VideoCapture(0))
-        print(core)
-    except Exception as e:
-        tkinter.messagebox.showerror("Error", e)
-        exit(1)
+    Core(VideoCapture(0))
 
 
 if __name__ == "__main__":

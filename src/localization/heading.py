@@ -18,9 +18,8 @@ def calculate_position_with_heading(
 def calculate_position(
     R_mtx: MatLike,
     tvecs: MatLike,
+    homogeneous_matrix: np.ndarray
 ):
-    external_parameters = load_external_parameters()
-    homogeneous_matrix = external_parameters["homogeneous_matrix"]
     homo_rotate_matrix = homogeneous_matrix[:3, :3]
     rotate_matrix = np.dot(homo_rotate_matrix, R_mtx)
 

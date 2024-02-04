@@ -5,7 +5,7 @@ from cv2.typing import MatLike
 
 def restore_from_vehicle():
     external_parameters = load_external_parameters()
-    homogeneous_matrix = external_parameters["homogeneous_matrix"]
+    homogeneous_matrix = external_parameters["homo_matrix"]
     result = np.linalg.inv(homogeneous_matrix)
     return result
 

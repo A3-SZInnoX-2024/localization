@@ -1,3 +1,0 @@
-[submodule "frontend/public/apriltags"]
-	path = frontend/public/apriltags
-	url = https://github.com/AprilRobotics/apriltag-imgs.git

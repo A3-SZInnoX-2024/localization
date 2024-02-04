@@ -12,15 +12,6 @@ def localization(
     dist_coeffs: ndarray,
     homo_matrix: ndarray,
 ):
-    if camera_matrix.shape != (3, 3):
-        return None
-
-    if dist_coeffs.shape != (1, 5):
-        return None
-
-    if homo_matrix.shape != (4, 4):
-        return None
-
     object_points, image_points = generate_points(dots)
 
     _, rvecs, tvecs = cv2.solvePnP(
@@ -32,4 +23,4 @@ def localization(
 
     R_mtx, _ = cv2.Rodrigues(rvecs)
 
-    return calculate_position(R_mtx, tvecs)
+    return calculate_position(R_mtx, tvecs, homo_matrix)
