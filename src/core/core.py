@@ -30,7 +30,6 @@ class Core:
 
     def __init__(self, capture: VideoCapture):
         self.cap = capture
-        # print(sio)
         client = Client()
         client.connect("http://localhost:8000")
         self.client = client
