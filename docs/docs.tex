@@ -34,6 +34,7 @@
     columns = fixed,
     basewidth = 0.5em,
 }
+\usepackage[framemethod=tikz]{mdframed}
 
 \title{Localization System of Group A2}
 \author{Wu Chengyu\ \url{7086cmd@gmail.com}}
@@ -71,10 +72,12 @@ There are several targets in this project:
 \begin{itemize}
   \item Get the camera matrix and the distortion coefficients with the help of \texttt{OpenCV}.
   \item Store the data, and use it at call time.
-  \item Fetch the external parameters when the robot is on
+  \item Fetch the external parameters when the robot is on a apriltag and calculate the transform matrixes to get the external parameters.
 \end{itemize}
 
 \subsection{Localization \& Navigation}
+
+\textbf{NOTE: Finally, this plan is deprecated.}
 
 \begin{itemize}
   \item We need fetch the location of the robot (not only position, but also the orientation) in the ground coordinate system. The ground coordinate system is defined by the \texttt{apriltags}.
@@ -83,12 +86,36 @@ There are several targets in this project:
   \item If there is no \texttt{apriltags} in the view of the camera, we should turn around and find the \texttt{apriltags}.
 \end{itemize}
 
+\textbf{NOTE: The Current Plan}
+
+We use the \texttt{apriltags} with its 4 corners to calculate the position of the camera. We use the P$n$P algorithm to calculate the position of the camera.
+
+So, in general, even if there is only one \texttt{apriltag} in the view of the camera, we can calculate the position of the camera.
+
 \subsection{Block Recognition}
 
 \begin{itemize}
   \item We need to recognize the color of the block. The color of the block is red, yellow, green, and blue. If necessary, we need to recognize the orange block too.
   \item We should get the camera matrix, the distortion coefficients. However, it's not my task.
   \item We should also get the position of the block (only position) in the ground coordinate system.
+\end{itemize}
+
+\subsection{Interprocess Communication}
+
+The \texttt{CV} is a independent module, and it should communicate with the control kernel. We should use the \texttt{socket.io} to communicate between the \texttt{CV} and the control kernel.
+
+\section{Project Structure (CV)}
+
+The project is a \texttt{Python} project with modules. It relys on \texttt{OpenCV}, \texttt{numpy}, \texttt{pupil\_apriltag}, and \texttt{python-socketio}.
+
+The project structure is as follows:
+
+\begin{itemize}
+  \item \texttt{calibration}: The calibration methods, including \texttt{external} and \texttt{internal} calibration.
+  \item \texttt{localization}: The localization that can calculate the position of the camera and the vehicle in the ground coordinate system.
+  \item \texttt{recognition}: The recognition can calculate the position of the block in the ground coordinate system with the help of the \texttt{localization} module.
+  \item \texttt{configuration}: The data configuration of \texttt{colors} (color range of the block) and \texttt{tags} (the position of the \texttt{apriltags} in the ground coordinate system).
+  \item \texttt{main.py}: The main file of the project. It contains the main function, and is responsible for the communication between the \texttt{CV} and the control kernel.
 \end{itemize}
 
 \section{Methodological Analysis}
@@ -100,11 +127,129 @@ The punctuation of \texttt{apriltags} is fixed, therefore, as long as we know th
 
 \subsection{Calibration}
 
-The first step of localization, navigation and block recognition is to calibrate the camera, knowing the camera's internal reference and distortion coefficients.
+The calibration is divided into $2$ parts: \texttt{external} and \texttt{internal} calibration.
 
-The calibration process is quite simple. We can use the \texttt{calibrateCamera} method provided by \texttt{OpenCV} to get the camera matrix and the distortion coefficients.
+The first step is the \texttt{internal} calibration, which is to get the camera matrix and the distortion coefficients. We should use a chess board to get the camera matrix and the distortion coefficients, with different angles and distances.
 
-For fun, I provided a simple calibration method that can calibrate the camera promptly with the camera. You may turn around to get the accurate calibration data. That's quite fun, or funny.
+The internal calibration process is quite simple. We can use the \texttt{calibrateCamera} method provided by \texttt{OpenCV} to get the camera matrix and the distortion coefficients.
+
+For fun, I provided a simple internal parameter calibration method that can calibrate the camera promptly with the camera. You may turn around to get the accurate calibration data. That's quite fun, or funny.
+
+Then, we should put our robot on a \texttt{apriltag}. Of course, you can put the robot anywhere since you know the position of the robot and the camera (using the P$n$P algorithm is more preferable). Then, we can calculate the transform matrix with the help of the ground coordinate system.
+
+As we know, the transform of $2$ coordinate systems is a $4\times4$ matrix. You can describe it as:
+
+\begin{equation}
+  \boldsymbol{T} (\texttt{homogeneous\_matrix})=\left(
+    \begin{matrix}
+      \boldsymbol{R}_{ct} & \boldsymbol{t}_{ct} \\
+      \boldsymbol{0} & 1
+    \end{matrix}
+  \right)
+\end{equation}
+
+And the procedure is (e. g. from \texttt{camera} to \texttt{vehicle}):
+\begin{equation}
+  \left(
+    \begin{matrix}
+      x_v \\
+      y_v \\
+      z_v \\
+      1
+    \end{matrix}
+  \right)=\left(
+    \begin{matrix}
+      \boldsymbol{R}_{ct} & \boldsymbol{t}_{ct} \\
+      \boldsymbol{0} & 1
+    \end{matrix}
+  \right)\cdot\left(
+    \begin{matrix}
+      x_c \\
+      y_c \\
+      z_c \\
+      1
+    \end{matrix}
+  \right)
+\end{equation}
+
+\subsubsection{Mathmetical Model}
+
+If you think this part is too boring, you can skip it, or you can take a break and tear up this article.
+
+\paragraph{Transform Relationships}
+
+We can get the transform matrix through the \texttt{camera} -- \texttt{world} and the \texttt{world} -- \texttt{vehicle} transform matrixes.
+
+Then, the transform matrix from \texttt{camera} to \texttt{vehicle} is:
+
+\begin{equation}
+  \boldsymbol{T}_{cv}=\boldsymbol{T}_{cw}\cdot\boldsymbol{T}_{wv}
+\end{equation}
+
+The procedure is following:
+
+\begin{enumerate}
+  \item Through the P$n$P algorithm (\texttt{resolvePnP} in \texttt{OpenCV}), we can get the transform matrix from \texttt{world} to \texttt{camera}:
+  \begin{equation}
+    \left(
+      \begin{matrix}
+        x_c \\
+        y_c \\
+        z_c \\
+        1
+      \end{matrix}
+    \right) = \left(\begin{matrix}\boldsymbol{R}_{wc} & \boldsymbol{t}_{wc} \\
+        \boldsymbol{0} & 1\end{matrix}\right)\cdot\left(
+        \begin{matrix}
+          x_w \\
+          y_w \\
+          z_w \\
+          1
+        \end{matrix}
+    \right)
+  \end{equation}
+  \item Then, we can use the vector $\left(\begin{matrix}1 & 0 & 0\end{matrix}\right)$ to get the transform matrix from \texttt{world} to \texttt{vehicle}, and the rotate matrix is a $3\times3$ unit matrix:
+
+  \textbf{Note:} You must confirm that your robot's orientation is the same as the $x$-axis of the ground coordinate system. If not, you should adjust the orientation of the robot to make it the same as the $x$-axis of the ground coordinate system.
+
+  That's because when calibrating, there is no way to get the orientation of the robot. Also, the calculation of the orientation is not so accurate. So, we should adjust the orientation of the robot to make it the same as the $x$-axis of the ground coordinate system. That's more accurate and convenient.
+
+  So, the rotate matrix is a $3\times3$ unit matrix $\left(\begin{matrix}1&0&0\\0&1&0\\0&0&1\end{matrix}\right)$, and the position in the vehicle coordinate system is $\left(0,0,0\right)$. That's because it's the origin of the vehicle coordinate system.
+
+  After getting the $x, y$ coordinate in the world coordinate system, and because the \texttt{apriltags} are on the ground, we can easily get $2$ transform vectors:
+
+  \begin{equation}
+    \boldsymbol{t}_{w} = \left(\begin{matrix}x_w&y_w&0\end{matrix}\right), \boldsymbol{t}_{v} = \left(\begin{matrix}0&0&0\end{matrix}\right)
+  \end{equation}
+
+  So, the \texttt{tvecs} (transform vector) is $\boldsymbol{t}_{w} - \boldsymbol{t}_{v}$. The rotate matrix is a $3\times3$ unit matrix.
+
+  Then, we use \texttt{vstack} and \texttt{hstack} to get the full transform matrix.
+
+  \textbf{Note:} The result of \texttt{solvePnP} is the rotate vector and the transform vector. We can use the \texttt{Rodrigues} method to get the rotate matrix.
+
+  \item Then, we can replace the matrix $\left(\begin{matrix}x_w\\y_w\\z_w\\1\end{matrix}\right)$ with the matrix $\boldsymbol{T}_{cw}\cdot\left(\begin{matrix}x_c\\y_c\\z_c\\1\end{matrix}\right)$ to get the transform matrix from \texttt{camera} to \texttt{vehicle}:
+
+  \begin{equation}
+    \boldsymbol{T}_{cw}\cdot\left(\begin{matrix}x_c\\y_c\\z_c\\1\end{matrix}\right) = \boldsymbol{T}_{vw}\cdot\boldsymbol{T}_{cv}\cdot\left(\begin{matrix}x_c\\y_c\\z_c\\1\end{matrix}\right)
+  \end{equation}
+
+  Because the vectors in the left and right are the same, we can get relationships between these matrixes:
+
+  \begin{equation}
+    \boldsymbol{T}_{cw} = \boldsymbol{T}_{vw}\cdot\boldsymbol{T}_{cv}
+  \end{equation}
+
+  So, we can get the transform matrix from \texttt{camera} to \texttt{vehicle} through the transform matrix from \texttt{world} to \texttt{vehicle} and the transform matrix from \texttt{world} to \texttt{camera}:
+
+  \begin{equation}
+    \boldsymbol{T}_{cv} = \boldsymbol{T}^{-1}_{vw}\cdot\boldsymbol{T}_{cw} = \boldsymbol{T}_{wv}\cdot\boldsymbol{T}_{cw}
+  \end{equation}
+
+  \item Then, we can use \texttt{numpy.linalg.inv} to get the inverse matrix of $\boldsymbol{T}_{vw}$, and then dot it with $\boldsymbol{T}_{cw}$ to get the transform matrix from \texttt{camera} to \texttt{vehicle}.
+\end{enumerate}
+
+That's quite simple, isn't it?
 
 \subsubsection{Basic Parameters}
 We need the camera's internal reference and distortion coefficients to accurately confirm the conversion.
@@ -130,6 +275,10 @@ The distortion coefficients are $5$ parameters, which are used to correct the di
 The relevant parameters of the camera are not considered to vary excessively during the process. In other words, we can store these parameters directly at call time.
 
 \subsection{Localization}
+
+\begin{mdframed}
+  \textbf{Note:} These methods are deprecated. We import the \texttt{apriltags}'s corners (range: left -- up, right -- up, right -- down, left -- down). Through the range and the width of the tag in the ground tag, we can get $4$ or $5$ points to calculate points.
+\end{mdframed}
 
 \subsubsection{6-point Adjustment}
 Each location of the \texttt{apriltags} can define $\dfrac16$ of the camera's position. Therefore, we need at least $6$ \texttt{apriltags} to calculate the position of the camera.
@@ -219,6 +368,14 @@ So, don't cry, don't say goodbye, don't tell a lie and hurt you.
 
 If there's no \texttt{apriltags}, what the robot should do is to turn around and find the \texttt{apriltags}. There is no place without \texttt{apriltag} around the robot.
 
+\subsubsection{Used Algorithm}
+
+In order to calculate the position of the vehicle (using the \texttt{external parameters}), we can use the multiplication of the \texttt{world} -- \texttt{camera} (P$n$P) and the \texttt{camera} -- \texttt{vehicle} (external parameter) transform matrixes to get the \texttt{vehicle} -- \texttt{world} transform matrix.
+
+We finally decided to deprecate the Eular Angle and use the Heading Angle instead. I selected the $x$-axis of the ground coordinate system as the $0^\circ$ angle, and it is actually the \texttt{yaw}.
+
+Then, in order to improve the accurate, I decided to use corners and centers together. Although the $1, 3, 6$ method was deprecated, its idea is still useful. What it inspired me is one point can decide one free degree in average.
+
 \subsection{Block Recognition}
 
 \subsubsection{Color Recognition}
@@ -265,6 +422,8 @@ Then, we calculated the transform matrix, and use the \texttt{warpPerspective} f
   \right)
 \end{equation}
 
+It is the rotate matrix from Eular Angle.
+
 Then, we firstly dot the $\boldsymbol{R}_x$ and $\boldsymbol{R}_y$ matrixes, and then dot the result with $\boldsymbol{R}_z$ matrix. We can get the transform matrix.
 
 \begin{equation}
@@ -289,7 +448,7 @@ The reason why the arithmetic mean is not used is because I think it is not eleg
 
 Because the version supportation problems, we finally decide to use \texttt{socket.io} to communicate between the contorl kernel and the vision module. The \texttt{python-socketio} provides the full package, and we can easily realize it.
 
-The communication can be described as only the \texttt{send-to-receive} procedure. THe CV core sends the location data, and the control core (maybe \texttt{ROS}) receive it and send it to the computing program to calculate the best way.
+The communication can be described as only the \texttt{send-to-receive} procedure. The CV core sends the location data, and the control core (maybe \texttt{ROS}) receive it and send it to the computing program to calculate the best way.
 
 \section{Algorithm Implementation}
 
@@ -337,7 +496,7 @@ The \texttt{Location} class provides variety of methods to return the position a
       k_1 & k_2 & p_1 & p_2 & k_3
     \end{matrix}\right)
   \]
-  \textbf{Note: } 2 functions above has been stored since the initialization of the class. It won't change during the process.
+  \textbf{Note: } $2$ functions above has been stored since the initialization of the class. It won't change during the process.
   \item \texttt{get\_location\_matrix}: Return the location matrix. It is a $3\times2$ matrix. The first line is the position in the ground coordinate system, and the second line is the orientation (Euler angle).
   \[
     \texttt{location\_matrix}=\left(\begin{matrix}
@@ -422,7 +581,7 @@ In this demo, we get the data:
 \]
 \[
   \texttt{distortion\_coefficients}=\left(\begin{matrix}
-    -0.01056663 & 0.30294403 & -0.07029588 & -0.02169794 & -0.44549622
+    -0.010567 & 0.302944 & -0.070295 & -0.021696 & -0.445497
   \end{matrix}\right)
 \]
 
@@ -456,49 +615,6 @@ Then, adding the mask can make the recognition more accurate. We can recognize t
 
 \appendix
 
-\section{Color Sections}
-
-Because there are 5 colors of the block, and they are \textbf{red}, \textbf{yellow}, \textbf{green}, \textbf{blue}, and \textbf{orange}. The color recognition is quite important.
-
-Using \texttt{HSV} color space, we can easily recognize the color of the block.
-
-\begin{table}
-    \centering
-    \begin{tabular}{ccc}
-        \hfill
-        \textbf{Color} & \textbf{Lower} & \textbf{Upper} \\
-        \hfill
-        \textbf{Red} & $\left(\begin{matrix}178&230&30\end{matrix}\right)$ & $\left(\begin{matrix}1&255&135\end{matrix}\right)$ \\
-        \textbf{Yellow} & $\left(\begin{matrix}18&160&120\end{matrix}\right)$ & $\left(\begin{matrix}24&245&220\end{matrix}\right)$ \\
-        \textbf{Green} & $\left(\begin{matrix}72&150&40\end{matrix}\right)$ & $\left(\begin{matrix}84&225&112\end{matrix}\right)$ \\
-        \textbf{Blue} & $\left(\begin{matrix}100&145&60\end{matrix}\right)$ & $\left(\begin{matrix}115&196&135\end{matrix}\right)$ \\
-        \textbf{Orange} & $\left(\begin{matrix}3&230&90\end{matrix}\right)$ & $\left(\begin{matrix}12&255&200\end{matrix}\right)$ \\
-        \hfill
-    \end{tabular}
-    \caption{Color Range}
-\end{table}
-
-And it is tested with the camera.
-
-\section{Camera Matrix \& Distortion Coefficients}
-
-After using the chess board, I finally get the camera matrix and the distortion coefficients. The data is saved in \texttt{data/calibration.npz}.
-
-The test camera (My MacBook Pro FaceTime 1080P Camera) can get the camera matrix and the distortion coefficients:
-
-\[
-  \texttt{camera\_matrix}=\left(\begin{matrix}
-    1503.75365 & 0.0 & 899.284676 \\
-    0.0 & 1514.5398703 & 367.845474 \\
-    0.0 & 0.0 & 1.0
-  \end{matrix}\right)
-\]
-
-\[
-  \texttt{distortion\_coefficients}=\left(\begin{matrix}
-    -0.01056663 & 0.30294403 & -0.07029588 & -0.02169794 & -0.44549622
-  \end{matrix}\right)
-\]
 
 \section{Git Repository}
 
